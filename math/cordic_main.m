@@ -15,8 +15,8 @@ close all;
 % Set: Phase vector size (phase - is a bit-vector)
 NPHI = 10;
 % Set: Gain of signal (output width in HDL)
-NOUT = 12;
-GAIN = 2^(NOUT-1);
+NOUT = 14;
+GAIN = 2^(NOUT-1)/1.6467;
 
 
 % ---- Calculate angles and create Look up table for ATAN -------------------- %
@@ -34,7 +34,7 @@ Angle_Int = int32(Angle);
 function quad_out = find_quad(Phase, Gain, PHI)
   x_ret = 0; y_ret = 0; z_ret = 0;
   
-  if ((Phase > -1) && (Phase < 2^(PHI-2))) % MSBs: "00" in HDL
+  if ((Phase > 0) && (Phase < 2^(PHI-2))) % MSBs: "00" in HDL
     z_ret = Phase;
     x_ret = Gain;
     y_ret = 0;
@@ -42,7 +42,7 @@ function quad_out = find_quad(Phase, Gain, PHI)
     z_ret = Phase - 2^(PHI-2);
     x_ret = 0;
     y_ret = Gain;
-  elseif ((Phase > -2^(PHI-2)+1) && (Phase < 0)) % MSBs: "11" in HDL 
+  elseif ((Phase > -2^(PHI-2)+1) && (Phase < 1)) % MSBs: "11" in HDL 
     z_ret = Phase;
     x_ret = Gain;
     y_ret = 0;
@@ -77,7 +77,11 @@ function harmonic_out = find_wave(Data, GainX, GainY, LutAtan, Len)
 end
 
 % ---- Create phase vector and calculate sin / cos --------------------------- % 
-phi_ii = -2^(NPHI-1):1:2^(NPHI-1)-1;
+phi_1 = 0:1:2^(NPHI-1)-1;
+phi_2 = -2^(NPHI-1):1:-1;
+
+%phi_ii = -2^(NPHI-1):1:2^(NPHI-1)-1;
+phi_ii = [phi_1 phi_2];
 phi_ii = int32(phi_ii);
 
 for ii = 1:length(phi_ii)
@@ -90,6 +94,8 @@ endfor
 %PhZ = phi_out(:,3);
 ReSig = sig_out(:,1);
 ImSig = sig_out(:,2);
+
+max(abs(ReSig))
 
 figure(1) % Plot loaded data in Freq Domain
   plot(ReSig, '-', 'LineWidth', 1, 'Color',[1 0 0])
