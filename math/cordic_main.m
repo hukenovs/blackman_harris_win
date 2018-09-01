@@ -6,17 +6,6 @@
 % E-mail      : sallador@bk.ru 
 % Version     : 1.0	 
 %
-% ---------------------------------------------------------------------------- %
-%
-% Description : 
-%    Calculate Sin / Cos in DDS mode by using CORDIC algorithm
-%
-% ---------------------------------------------------------------------------- %
-%
-% Version     : 1.0 
-% Date        : 2018.09.01
-%
-%% -------------------------------------------------------------------------- %%	   
 set(0, 'DefaultAxesFontSize', 14, 'DefaultAxesFontName', 'Times New Roman');
 set(0, 'DefaultTextFontSize', 14, 'DefaultTextFontName', 'Times New Roman'); 
 
@@ -26,7 +15,7 @@ close all;
 % Set: Phase vector size (phase - is a bit-vector)
 NPHI = 10;
 % Set: Gain of signal (output width in HDL)
-NOUT = 14;
+NOUT = 12;
 GAIN = 2^(NOUT-1);
 
 
@@ -39,9 +28,7 @@ for ii = 1:(NOUT-1)
     Angle(ii) = 0;
   endif  
 endfor
-%Angle_Int = int32(Angle);
-Angle_Hex = dec2hex(Angle, NPHI/4);
-
+Angle_Int = int32(Angle);
 
 % ---- Calculate quadrant from input phase ----------------------------------- %
 function quad_out = find_quad(Phase, Gain, PHI)
@@ -64,9 +51,9 @@ function quad_out = find_quad(Phase, Gain, PHI)
     x_ret = 0;
     y_ret = -Gain;    
   endif
-  quad_out(1,1) = x_ret;
-  quad_out(1,2) = y_ret;
-  quad_out(1,3) = z_ret;
+  quad_out(1,1) = int32(x_ret);
+  quad_out(1,2) = int32(y_ret);
+  quad_out(1,3) = int32(z_ret);
 end
 
 % ---- Calculate sin / cos values -------------------------------------------- %
@@ -77,12 +64,12 @@ function harmonic_out = find_wave(Data, GainX, GainY, LutAtan, Len)
   for ii = 1:(Len-1)
     if (sig_ret(ii) < 0)
       sig_ret(ii+1) = sig_ret(ii) + LutAtan(ii);
-      cos_ret(ii+1) = cos_ret(ii) + (sin_ret(ii) * 2^(1-ii));
-      sin_ret(ii+1) = sin_ret(ii) - (cos_ret(ii) * 2^(1-ii));      
+      cos_ret(ii+1) = cos_ret(ii) + floor(sin_ret(ii) * 2^(1-ii));
+      sin_ret(ii+1) = sin_ret(ii) - floor(cos_ret(ii) * 2^(1-ii));      
     else
       sig_ret(ii+1) = sig_ret(ii) - LutAtan(ii);
-      cos_ret(ii+1) = cos_ret(ii) - (sin_ret(ii) * 2^(1-ii));
-      sin_ret(ii+1) = sin_ret(ii) + (cos_ret(ii) * 2^(1-ii));      
+      cos_ret(ii+1) = cos_ret(ii) - floor(sin_ret(ii) * 2^(1-ii));
+      sin_ret(ii+1) = sin_ret(ii) + floor(cos_ret(ii) * 2^(1-ii));      
     endif
   endfor
   harmonic_out(1,1) = (cos_ret(Len-1));
@@ -91,15 +78,16 @@ end
 
 % ---- Create phase vector and calculate sin / cos --------------------------- % 
 phi_ii = -2^(NPHI-1):1:2^(NPHI-1)-1;
+phi_ii = int32(phi_ii);
 
 for ii = 1:length(phi_ii)
   phi_out(ii,:) = find_quad(phi_ii(1,ii), GAIN, NPHI);
-  sig_out(ii,:) = find_wave(phi_out(ii,3), phi_out(ii,1), phi_out(ii,2), Angle, NOUT);
+  sig_out(ii,:) = find_wave(phi_out(ii,3), phi_out(ii,1), phi_out(ii,2), Angle_Int, NOUT);
 endfor
 
-PhX = phi_out(:,1);
-PhY = phi_out(:,2);
-PhZ = phi_out(:,3);
+%PhX = phi_out(:,1);
+%PhY = phi_out(:,2);
+%PhZ = phi_out(:,3);
 ReSig = sig_out(:,1);
 ImSig = sig_out(:,2);
 
@@ -108,6 +96,6 @@ figure(1) % Plot loaded data in Freq Domain
   grid on; hold on; axis tight; 
   plot(ImSig, '-', 'LineWidth', 1, 'Color',[0 0 1])
   grid on; hold on; axis tight; 
-  title(['CORDIC sine / cosine:'])  
+  title(['CORDIC SINE / COSINE:'])  
   
 %% -------------------------------- EOF ------------------------------------- %% 
