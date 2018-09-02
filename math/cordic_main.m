@@ -13,23 +13,19 @@ clear all;
 close all;
 
 % Set: Phase vector size (phase - is a bit-vector)
-NPHI = 10;
+NPHI = 14;
 % Set: Gain of signal (output width in HDL)
-NOUT = 14;
+NOUT = 16;
+%GAIN = 2^(NOUT-1)/1.6467;
 GAIN = 2^(NOUT-1)/1.6467;
 
 
+
 % ---- Calculate angles and create Look up table for ATAN -------------------- %
-Angle = zeros(1, NOUT-1);
-for ii = 1:(NOUT-1)
-  if (ii < NOUT-1)
-    Angle(ii) = round(atan(2^(-(ii-1))) * (2^(NPHI)/(2*pi)));
-  else
-    Angle(ii) = 0;
-  endif  
-endfor
+Angle(:,1) = round(atan(2.^(-(0:(NOUT-1)))) .* (2^(NPHI)/(2*pi)));
 Angle_Int = int32(Angle);
 
+Magn = prod(sqrt(1+2.^(-2*(0:(NOUT-1)))));
 % ---- Calculate quadrant from input phase ----------------------------------- %
 function quad_out = find_quad(Phase, Gain, PHI)
   x_ret = 0; y_ret = 0; z_ret = 0;
@@ -77,12 +73,13 @@ function harmonic_out = find_wave(Data, GainX, GainY, LutAtan, Len)
 end
 
 % ---- Create phase vector and calculate sin / cos --------------------------- % 
-phi_1 = 0:1:2^(NPHI-1)-1;
-phi_2 = -2^(NPHI-1):1:-1;
+%phi_1 = 0:8:2^(NPHI-1)-1;
+%phi_2 = -2^(NPHI-1):8:-1;
 
-%phi_ii = -2^(NPHI-1):1:2^(NPHI-1)-1;
-phi_ii = [phi_1 phi_2];
-phi_ii = int32(phi_ii);
+phi_ii = -2^(NPHI-1):8:2^(NPHI-1)-1;
+%phi_ii = [phi_1 phi_2];
+
+%phi_ii = int32(phi_ii);
 
 for ii = 1:length(phi_ii)
   phi_out(ii,:) = find_quad(phi_ii(1,ii), GAIN, NPHI);
@@ -92,16 +89,53 @@ endfor
 %PhX = phi_out(:,1);
 %PhY = phi_out(:,2);
 %PhZ = phi_out(:,3);
-ReSig = sig_out(:,1);
-ImSig = sig_out(:,2);
+ReSig = sig_out(:,1) + 1 * randn(size(sig_out(:,1)));
+ImSig = sig_out(:,2) + 1 * randn(size(sig_out(:,1)));
 
 max(abs(ReSig))
 
 figure(1) % Plot loaded data in Freq Domain
+  subplot(2,1,1)
   plot(ReSig, '-', 'LineWidth', 1, 'Color',[1 0 0])
   grid on; hold on; axis tight; 
   plot(ImSig, '-', 'LineWidth', 1, 'Color',[0 0 1])
   grid on; hold on; axis tight; 
-  title(['CORDIC SINE / COSINE:'])  
+  title(['CORDIC SINE / COSINE:'])
+ 
+%Spec_Re = fft(ReSig, 2^(NPHI)); 
+%Spec_Im = fft(ImSig, 2^(NPHI)); 
+Spec_Re = fft(ReSig); 
+Spec_Im = fft(ImSig);
+Spec_Re = fftshift(Spec_Re); 
+Spec_Im = fftshift(Spec_Im);
+
+Sabs_Re = sqrt(real(Spec_Re).^2 .+ imag(Spec_Re).^2);
+Sabs_Im = sqrt(real(Spec_Im).^2 .+ imag(Spec_Im).^2);
+
+Sabs_Re = Sabs_Re / max(Sabs_Re);
+Sabs_Im = Sabs_Im / max(Sabs_Im);
+
+Slog_Re = 10*log10(Sabs_Re+1e-10);
+Slog_Im = 10*log10(Sabs_Im+1e-10);
+figure(1) % Plot loaded data in Freq Domain
+  subplot(2,1,1)
+  plot(ReSig, '-', 'LineWidth', 1, 'Color',[1 0 0])
+  grid on; hold on; axis tight; 
+  plot(ImSig, '-', 'LineWidth', 1, 'Color',[0 0 1])
+  grid on; hold on; axis tight; 
+  title(['CORDIC SINE / COSINE:'])
+
+%  subplot(3,1,2)
+%  plot(Sabs_Re, '-', 'LineWidth', 1, 'Color',[1 0 0])
+%  grid on; hold on; axis tight; 
+%  plot(Sabs_Im, '-', 'LineWidth', 1, 'Color',[0 0 1])
+%  grid on; hold on; axis tight;   
+  
+  subplot(2,1,2)
+  plot(Slog_Re, '-', 'LineWidth', 1, 'Color',[1 0 0])
+  grid on; hold on; axis tight; 
+  plot(Slog_Im, '-', 'LineWidth', 1, 'Color',[0 0 1])
+  grid on; hold on; axis tight;     
+  
   
 %% -------------------------------- EOF ------------------------------------- %% 
