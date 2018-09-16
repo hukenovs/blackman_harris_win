@@ -15,19 +15,30 @@ theta = 0;					% initial angle
 %disp(Angle_Hex);
 
 % Run CORDIC algorith in rotation mode
-function [x_out, y_out, angle] = cordic(theta, n)
+function [x_out, y_out, angle] = cordic(theta, n, N)
 	z = theta;
 	rot = 0;   % Indicates if a rotation occured. 0: no rotation 1: rotation by -pi 2: rotation by +pi
 
 	% Initial rotation
-	if (z > pi/2) && (z <= pi)
-		z = z - pi;
+%	if (z > pi/2) && (z <= pi)
+%		z = z - pi;
+%		rot = 1;
+%	end
+%	if (z < -pi/2) && (z >= -pi)
+%		z = z + pi;
+%		rot = 1;
+%	end
+
+	if (z > 2^(N-3)/2) && (z <= 2^(N-3))
+		z = z - 2^(N-3);
 		rot = 1;
 	end
-	if (z < -pi/2) && (z >= -pi)
-		z = z + pi;
+	if (z < -2^(N-3)/2) && (z >= -2^(N-3))
+		z = z + 2^(N-3);
 		rot = 1;
 	end
+
+
 	% Set x to 1 and y to 0
 	x = 2^(n-1);
 	y = 0;
@@ -35,11 +46,11 @@ function [x_out, y_out, angle] = cordic(theta, n)
 		if z < 0
 			x_next = x + round(y * 2^-w);
       y_next = y - round(x * 2^-w);
-      z = z + atan(2^-w);
+      z = z + 2^(N-3)*atan(2^-w)/pi;
 		else
 		  x_next = x - round(y * 2^-w);
 		  y_next = y + round(x * 2^-w);
-      z = z - atan(2^-w);
+      z = z - 2^(N-3)*atan(2^-w)/pi;
 		end
 		x = x_next;
 		y = y_next;
@@ -65,10 +76,15 @@ end
 
 
 q = 1;
-for theta = -pi : pi/2^(N-3) :pi-pi/2^(N-3)
-	[x_out(q), y_out(q), angle(q)] = cordic(theta, n);
+%for theta = -pi : pi/2^(N-3) :pi-pi/2^(N-3)
+for theta = -2^(N-3) : 1 :2^(N-3)-1
+	[x_out(q), y_out(q), angle(q)] = cordic(theta, n, N);
 	q = q + 1;
 end
+
+%th(:,1) = -2^(N-3) : 1 :2^(N-3)-1;
+
+
 %x_new = x_out + 1/2^(n) * randn(size(x_out));
 %y_new = y_out + 1/2^(n) * randn(size(y_out));
 X_new = round(x_out/1.6467);
