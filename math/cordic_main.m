@@ -15,7 +15,7 @@ close all;
 % Set: Phase vector size (phase - is a bit-vector)
 NPHI = 12;
 % Set: Gain of signal (output width in HDL)
-NOUT = 16;
+NOUT = 15;
 %GAIN = 2^(NOUT-1)/1.6467;
 GAIN = 2^(NOUT-1)/1.6467;
 
@@ -76,7 +76,7 @@ end
 %phi_1 = 0:8:2^(NPHI-1)-1;
 %phi_2 = -2^(NPHI-1):8:-1;
 
-STEP = 8;
+STEP = 1;
 
 phi_ii = -2^(NPHI-1):STEP:2^(NPHI-1)-1;
 %phi_ii = [phi_1 phi_2];
@@ -91,8 +91,8 @@ endfor
 %PhX = phi_out(:,1);
 %PhY = phi_out(:,2);
 %PhZ = phi_out(:,3);
-ReSig = sig_out(:,1) + 8 * randn(size(sig_out(:,1)));
-ImSig = sig_out(:,2) + 8 * randn(size(sig_out(:,1)));
+ReSig = sig_out(:,1);
+ImSig = sig_out(:,2);
 
 max(abs(ReSig))
 
@@ -101,16 +101,16 @@ max(abs(ReSig))
 % ---- Calculate spectrum for CORDIC sine / cosine --------------------------- % 
 %Spec_Re = fft(ReSig, 2^(NPHI)); 
 %Spec_Im = fft(ImSig, 2^(NPHI)); 
-Spec_Re = fft(ReSig); 
-Spec_Im = fft(ImSig);
-Spec_Re = fftshift(Spec_Re); 
-Spec_Im = fftshift(Spec_Im);
+Spec_Re = fft(ReSig + 1 * randn(size(ReSig)), length(phi_ii)); 
+Spec_Im = fft(ImSig + 1 * randn(size(ImSig)), length(phi_ii));
+Spec_Re = Spec_Re .* conj(Spec_Re);
+Spec_Im = Spec_Im .* conj(Spec_Im);
 
-Sabs_Re = sqrt(real(Spec_Re).^2 .+ imag(Spec_Re).^2);
-Sabs_Im = sqrt(real(Spec_Im).^2 .+ imag(Spec_Im).^2);
+Spec_Re = fftshift(Spec_Re(2:end)); 
+Spec_Im = fftshift(Spec_Im(2:end));
 
-Sabs_Re = Sabs_Re / max(Sabs_Re);
-Sabs_Im = Sabs_Im / max(Sabs_Im);
+Sabs_Re = Spec_Re / max(Spec_Re);
+Sabs_Im = Spec_Im / max(Spec_Im);
 
 Slog_Re = 10*log10(Sabs_Re+1e-10);
 Slog_Im = 10*log10(Sabs_Im+1e-10);
@@ -120,16 +120,23 @@ Slog_Im = 10*log10(Sabs_Im+1e-10);
 Id_sin(:,1) = round(-2^(NOUT-1) * sin((0:(2^NPHI/STEP-1)).*2*pi/(2^NPHI/STEP)));
 Id_cos(:,1) = round(-2^(NOUT-1) * cos((0:(2^NPHI/STEP-1)).*2*pi/(2^NPHI/STEP)));
 
-Spec_Re = fft(Id_cos + 0.1 * randn(size(Id_cos(:,1)))); 
-Spec_Im = fft(Id_sin + 0.1 * randn(size(Id_sin(:,1))));
-Spec_Re = fftshift(Spec_Re); 
-Spec_Im = fftshift(Spec_Im);
+Id_sin(:,1) = Id_sin + 1 * randn(size(Id_sin));
+Id_cos(:,1) = Id_cos + 1 * randn(size(Id_cos));
 
-Sabs_Re = sqrt(real(Spec_Re).^2 .+ imag(Spec_Re).^2);
-Sabs_Im = sqrt(real(Spec_Im).^2 .+ imag(Spec_Im).^2);
+%Win = kaiser(length(Id_sin), 19); 
+%Dat_X = filter2(Win, Id_sin);
+%Dat_Y = filter2(Win, Id_cos);
 
-Sabs_Re = Sabs_Re / max(Sabs_Re);
-Sabs_Im = Sabs_Im / max(Sabs_Im);
+Spec_Re = fft(Id_cos, length(phi_ii)); 
+Spec_Im = fft(Id_sin, length(phi_ii));
+Spec_Re = Spec_Re .* conj(Spec_Re);
+Spec_Im = Spec_Im .* conj(Spec_Im);
+
+Spec_Re = fftshift(Spec_Re(2:end)); 
+Spec_Im = fftshift(Spec_Im(2:end));
+
+Sabs_Re = Spec_Re / max(Spec_Re);
+Sabs_Im = Spec_Im / max(Spec_Im);
 
 Sidl_Re = 10*log10(Sabs_Re+1e-10);
 Sidl_Im = 10*log10(Sabs_Im+1e-10);
@@ -151,16 +158,16 @@ figure(1) % Plot loaded data in Freq Domain
   
   subplot(4,1,2)
   plot(Slog_Re, '-', 'LineWidth', 1, 'Color',[1 0 0])
-  grid on; hold on; axis tight; 
+  grid on; hold on; axis ([0, length(Slog_Re), -120, 0]); 
   plot(Slog_Im, '-', 'LineWidth', 1, 'Color',[0 0 1])
-  grid on; hold on; axis tight; 
+  grid on; hold on; axis ([0, length(Slog_Re), -120, 0]); 
   title(['CORDIC SPECTRUM:'])
   
   subplot(4,1,3)
   plot(Sidl_Re, '-', 'LineWidth', 1, 'Color',[1 0 0])
-  grid on; hold on; axis tight; 
+  grid on; hold on; axis ([0, length(Sidl_Re), -120, 0]); 
   plot(Sidl_Im, '-', 'LineWidth', 1, 'Color',[0 0 1])
-  grid on; hold on; axis tight; 
+  grid on; hold on; axis ([0, length(Sidl_Re), -120, 0]); 
   title(['IDEAL SPECTRUM:'])   
   
   subplot(4,1,4)
