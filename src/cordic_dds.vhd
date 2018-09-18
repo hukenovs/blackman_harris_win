@@ -104,31 +104,33 @@ end function fn_log2;
 
 
 ---------------- Constant declaration ----------------
-function fn_magn return real is
+function fn_magn return std_logic_vector is
 	variable ret_val : real := 0.0; 
 	variable tmp_val : real := 1.0; 
+	constant sig_val : std_logic_vector(DATA_WIDTH+2 downto 0):=(DATA_WIDTH+2 => '0', others => '1'); 
+	variable sig_mgn : std_logic_vector(31 downto 0); 
+	variable sig_ret : std_logic_vector(DATA_WIDTH+2+32 downto 0); 
 begin					
-	for ii in 0 to DATA_WIDTH loop
+	for ii in 0 to DATA_WIDTH+2 loop
 		ret_val := SQRT(1.0+2.0**(-2*ii));
 		tmp_val := tmp_val*ret_val;     
 	end loop;
-	-- ret_val := (2.0**(DATA_WIDTH+2)-1.0)/(tmp_val+0.000001);
+	-- 0.00001 from 12 to 19 --
+	-- 0.000001 from 20 to 22 --
+	-- 0.0000001 from 23 to 25 --
 	
-	if (DATA_WIDTH > 29) then
-		ret_val := (2.0**(DATA_WIDTH-1)-1.0)/(tmp_val+0.000001);
-	else
-		ret_val := (2.0**(DATA_WIDTH+2)-1.0)/(tmp_val+0.000001);
-	end if;
-	return ret_val;
+	ret_val := 2.0**31/(tmp_val+0.0000001); -- equal ~1.6467...
+	ret_val := 2.0**31/(1.6468); -- equal ~1.6467...
+	sig_mgn := conv_std_logic_vector(integer(ret_val), 32);
+	sig_ret := sig_mgn * sig_val;
+
+	return sig_ret(DATA_WIDTH+2+31 downto 31);
 end function;
 
--- constant POWER			: real:=(2.0**(DATA_WIDTH+2)-1.0)/1.65; --! FIX THIS 1.6467; --! FIX THIS
--- constant POWER			: real:=(2.0**(DATA_WIDTH+2)-1.0)/fn_magn; --! FIX THIS 1.6467; --! FIX THIS
-constant POWER			: real:=fn_magn; --! FIX THIS 1.6467; --! FIX THIS
-constant GAIN			: std_logic_vector(DATA_WIDTH+2 downto 0):=conv_std_logic_vector(integer(POWER), DATA_WIDTH+3);
+constant GAIN			: std_logic_vector(DATA_WIDTH+2 downto 0):=fn_magn;
 
 constant SHIFT_LEN		: integer:=fn_log2(DATA_WIDTH)+1;
-constant SHIFT_PHI		: integer:=DATA_WIDTH-PHASE_WIDTH+1;
+-- constant SHIFT_PHI		: integer:=DATA_WIDTH-PHASE_WIDTH+1;
 
 ---------------- ROM: Look up table for CORDIC ----------------
 ---- Result of [ATAN(2^-i) * (2^32/360)] rounded and converted to HEX
