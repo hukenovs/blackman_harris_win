@@ -15,14 +15,14 @@ close all;
 % Set: Phase vector size (phase - is a bit-vector)
 NPHI = 11;
 % Set: Gain of signal (output width in HDL)
-NOUT = 12;
+NOUT = 9;
 %GAIN = 2^(NOUT-1)/1.6467;
 GAIN = 2^(NOUT-1)/1.6467;
 
 
 
 % ---- Calculate angles and create Look up table for ATAN -------------------- %
-Angle(:,1) = round( atan(2.^(-(0:NOUT))) .* (2^(NOUT)/pi ) );
+Angle(:,1) = round( atan(2.^(-(0:NOUT-1))) .* (2^(NOUT)/pi ) );
 Angle(length(Angle),1) = 0;
 
 Angle_Int = int32(Angle);
@@ -53,19 +53,19 @@ end
 function harmonic_out = find_wave(Data, Rot, LutAtan, Len, Phi)
 %  sig_ret = double(Data);
   sig_ret = Data;
-  cos_ret = 2^(Len-1);
+  cos_ret = 2^(Len+1);
   sin_ret = 0;
   
-  for ii = 0:Len
+  for ii = 0:Len-1
     if (sig_ret < 0)
       sig_ret = sig_ret + LutAtan(ii+1);
-      cos_new = cos_ret + round(sin_ret * 2^(-ii));
-      sin_new = sin_ret - round(cos_ret * 2^(-ii));
+      cos_new = cos_ret + floor(sin_ret * 2^(-ii));
+      sin_new = sin_ret - floor(cos_ret * 2^(-ii));
 %      sig_ret = sig_ret + 2^(Phi-3) * atan(2^-ii) / pi;      
     else
       sig_ret = sig_ret - LutAtan(ii+1);
-      cos_new = cos_ret - round(sin_ret * 2^(-ii));
-      sin_new = sin_ret + round(cos_ret * 2^(-ii)); 
+      cos_new = cos_ret - floor(sin_ret * 2^(-ii));
+      sin_new = sin_ret + floor(cos_ret * 2^(-ii)); 
 %      sig_ret = sig_ret - 2^(Phi-3) * atan(2^-ii) / pi;     
     endif
     cos_ret = cos_new;
@@ -78,8 +78,8 @@ function harmonic_out = find_wave(Data, Rot, LutAtan, Len, Phi)
   end
   
   
-  harmonic_out(1,1) = round(cos_ret / 1.6467);
-  harmonic_out(1,2) = round(sin_ret / 1.6467);
+  harmonic_out(1,1) = round(cos_ret / 1.6467 / 4 / 1);
+  harmonic_out(1,2) = round(sin_ret / 1.6467 / 4 / 1);
 end
 
 % ---- Create phase vector and calculate sin / cos --------------------------- % 
@@ -92,7 +92,7 @@ phi_ii = [phi_2 phi_1];
 
 for ii = 1:length(phi_ii)
   phi_out(ii,:) = find_quad(phi_ii(1,ii), NPHI, NOUT);
-  sig_out(ii,:) = find_wave(phi_out(ii,1), phi_out(ii,2), Angle, NOUT, NPHI);
+  sig_out(ii,:) = find_wave(phi_out(ii,1), phi_out(ii,2), Angle_Int, NOUT, NPHI);
 endfor
 
 %PhX = phi_out(:,1);
@@ -150,39 +150,46 @@ Sidl_Im = 10*log10(Sabs_Im);
 
 % ---- Plot figures ---------------------------------------------------------- % 
 figure(1) % Plot loaded data in Freq Domain
-  subplot(1,1,1)
+%  subplot(1,1,1)
+%  plot(ReSig, '-', 'LineWidth', 1, 'Color',[1 0 0])
+%  grid on; hold on; axis ([450, 580, 2010, 2050]); 
+%  plot(ImSig, '-', 'LineWidth', 1, 'Color',[0 0 1])
+%  grid on; hold on; axis ([450, 580, 2010, 2050]); 
+%  title(['CORDIC SINE / COSINE:'])  
+%  
+  subplot(4,1,1)
   plot(ReSig, '-', 'LineWidth', 1, 'Color',[1 0 0])
-  grid on; hold on; axis ([450, 580, 2010, 2050]); 
+  grid on; hold on; axis tight; 
   plot(ImSig, '-', 'LineWidth', 1, 'Color',[0 0 1])
-  grid on; hold on; axis ([450, 580, 2010, 2050]); 
+  grid on; hold on; axis tight; 
   title(['CORDIC SINE / COSINE:'])
 
-%  subplot(3,1,2)
-%  plot(Sabs_Re, '-', 'LineWidth', 1, 'Color',[1 0 0])
-%  grid on; hold on; axis tight; 
-%  plot(Sabs_Im, '-', 'LineWidth', 1, 'Color',[0 0 1])
-%  grid on; hold on; axis tight;   
+  subplot(3,1,2)
+  plot(Sabs_Re, '-', 'LineWidth', 1, 'Color',[1 0 0])
+  grid on; hold on; axis tight; 
+  plot(Sabs_Im, '-', 'LineWidth', 1, 'Color',[0 0 1])
+  grid on; hold on; axis tight;   
+ 
+  subplot(4,1,2)
+  plot(Slog_Re, '-', 'LineWidth', 1, 'Color',[1 0 0])
+  grid on; hold on; axis ([0, length(Slog_Re), -120, 0]); 
+  plot(Slog_Im, '-', 'LineWidth', 1, 'Color',[0 0 1])
+  grid on; hold on; axis ([0, length(Slog_Re), -120, 0]); 
+  title(['CORDIC SPECTRUM:'])
   
-%  subplot(4,1,2)
-%  plot(Slog_Re, '-', 'LineWidth', 1, 'Color',[1 0 0])
-%  grid on; hold on; axis ([0, length(Slog_Re), -120, 0]); 
-%  plot(Slog_Im, '-', 'LineWidth', 1, 'Color',[0 0 1])
-%  grid on; hold on; axis ([0, length(Slog_Re), -120, 0]); 
-%  title(['CORDIC SPECTRUM:'])
-%  
-%  subplot(4,1,3)
-%  plot(Sidl_Re, '-', 'LineWidth', 1, 'Color',[1 0 0])
-%  grid on; hold on; axis ([0, length(Sidl_Re), -120, 0]); 
-%  plot(Sidl_Im, '-', 'LineWidth', 1, 'Color',[0 0 1])
-%  grid on; hold on; axis ([0, length(Sidl_Re), -120, 0]); 
-%  title(['IDEAL SPECTRUM:'])   
-%  
-%  subplot(4,1,4)
-%  plot(ReSig-Id_cos, '-', 'LineWidth', 1, 'Color',[1 0 0])
-%  grid on; hold on; axis tight; 
-%  plot(ImSig-Id_sin, '-', 'LineWidth', 1, 'Color',[0 0 1])
-%  grid on; hold on; axis tight; 
-%  title(['DIFF - MODEL & THEORY:'])
+  subplot(4,1,3)
+  plot(Sidl_Re, '-', 'LineWidth', 1, 'Color',[1 0 0])
+  grid on; hold on; axis ([0, length(Sidl_Re), -120, 0]); 
+  plot(Sidl_Im, '-', 'LineWidth', 1, 'Color',[0 0 1])
+  grid on; hold on; axis ([0, length(Sidl_Re), -120, 0]); 
+  title(['IDEAL SPECTRUM:'])   
+  
+  subplot(4,1,4)
+  plot(ReSig-Id_cos, '-', 'LineWidth', 1, 'Color',[1 0 0])
+  grid on; hold on; axis tight; 
+  plot(ImSig-Id_sin, '-', 'LineWidth', 1, 'Color',[0 0 1])
+  grid on; hold on; axis tight; 
+  title(['DIFF - MODEL & THEORY:'])
     
   
 %% -------------------------------- EOF ------------------------------------- %% 

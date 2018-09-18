@@ -102,8 +102,8 @@ end function fn_log2;
 
 
 ---------------- Constant declaration ----------------
-constant POWER			: real:=2.0**(DATA_WIDTH-1)/1.6467; --! FIX THIS
-constant GAIN			: std_logic_vector(DATA_WIDTH downto 0):=conv_std_logic_vector(integer(POWER), DATA_WIDTH+1);
+constant POWER			: real:=(2.0**(DATA_WIDTH+2)-1.0)/1.65; --! FIX THIS 1.6467; --! FIX THIS
+constant GAIN			: std_logic_vector(DATA_WIDTH+2 downto 0):=conv_std_logic_vector(integer(POWER), DATA_WIDTH+3);
 
 constant SHIFT_LEN		: integer:=fn_log2(DATA_WIDTH)+1;
 constant SHIFT_PHI		: integer:=DATA_WIDTH-PHASE_WIDTH+1;
@@ -128,13 +128,13 @@ constant ROM_NEW	: rom_array := CALC_ATAN;
 ---------------- Signal declaration ----------------
 
 
-signal init_x			: std_logic_vector(DATA_WIDTH  downto 0);
-signal init_y			: std_logic_vector(DATA_WIDTH  downto 0);
+signal init_x			: std_logic_vector(DATA_WIDTH+2 downto 0);
+signal init_y			: std_logic_vector(DATA_WIDTH+2 downto 0);
 signal init_t			: std_logic_vector(PHASE_WIDTH-1 downto 0);
-signal init_z			: std_logic_vector(DATA_WIDTH-1  downto 0);
+signal init_z			: std_logic_vector(DATA_WIDTH-1 downto 0);
 
 
-type dat_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH downto 0);
+type dat_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+2 downto 0);
 type phi_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
 
 signal sigX				: dat_array := (others => (others => '0'));
@@ -142,14 +142,6 @@ signal sigY				: dat_array := (others => (others => '0'));
 signal sigZ 			: phi_array := (others => (others => '0'));
 
 signal quadrant			: std_logic_vector(1 downto 0);
-
-
-signal shift_x			: dat_array;
-signal shift_y			: dat_array;
-
-
-
-
 
 
 begin
@@ -176,22 +168,21 @@ begin
 end process;
 
 
--- xGEN_ZERO: if (DATA_WIDTH-PHASE_WIDTH = 0) generate
--- begin
-	-- init_z <= init_t;
--- end generate;
+xGEN_ZERO: if (DATA_WIDTH-PHASE_WIDTH+1 = 0) generate
+begin
+	init_z <= init_t(DATA_WIDTH-1 downto 0);
+end generate;
 
-xGEN_MORE: if (DATA_WIDTH-PHASE_WIDTH > -1) generate
+xGEN_MORE: if (DATA_WIDTH-PHASE_WIDTH+1 > 0) generate
 	constant ZEROS : std_logic_vector(DATA_WIDTH-PHASE_WIDTH downto 0):=(others=>'0');
 begin
 	init_z <= init_t(PHASE_WIDTH-2 downto 0) & ZEROS;
 end generate;
 
--- -- xGEN_LESS: if (DATA_WIDTH-PHASE_WIDTH-2 < 0) generate
-	-- -- constant ZEROS : std_logic_vector(DATA_WIDTH-PHASE_WIDTH-2 downto 0):=(others=>'0');
--- -- begin	
-	-- -- init_z <= init_t & ZEROS;
--- -- end generate;
+xGEN_LESS: if (DATA_WIDTH-PHASE_WIDTH+1 < 0) generate
+begin
+	init_z <= init_t(PHASE_WIDTH-(PHASE_WIDTH-DATA_WIDTH-1)-1 downto (PHASE_WIDTH-DATA_WIDTH-1));
+end generate;
 
 
 
@@ -247,7 +238,7 @@ begin
         sigX(0) <= init_x;
         sigY(0) <= init_y;        
 		sigZ(0) <= init_z;
-
+		---- calculate sine & cosine ----
         xl: for ii in 0 to DATA_WIDTH-2 loop
             if (sigZ(ii)(sigZ(ii)'left) = '0') then
                 sigX(ii+1) <= sigX(ii) + STD_LOGIC_VECTOR(SHR(SIGNED(sigY(ii)), CONV_UNSIGNED(ii, SHIFT_LEN)));
@@ -256,11 +247,8 @@ begin
                 sigX(ii+1) <= sigX(ii) - STD_LOGIC_VECTOR(SHR(SIGNED(sigY(ii)), CONV_UNSIGNED(ii, SHIFT_LEN)));
                 sigY(ii+1) <= sigY(ii) + STD_LOGIC_VECTOR(SHR(SIGNED(sigX(ii)), CONV_UNSIGNED(ii, SHIFT_LEN)));
             end if;
-
-			shift_x(ii) <= STD_LOGIC_VECTOR(SHR(SIGNED(sigY(ii)), CONV_UNSIGNED(ii, SHIFT_LEN)));
-			shift_y(ii) <= STD_LOGIC_VECTOR(SHR(SIGNED(sigX(ii)), CONV_UNSIGNED(ii, SHIFT_LEN)));
         end loop;
-
+		---- calculate phase ----
         xp: for ii in 0 to DATA_WIDTH-2 loop
             if (sigZ(ii)(sigZ(ii)'left) = '1') then
                 sigZ(ii+1) <= sigZ(ii) + ROM_NEW(ii);
@@ -268,45 +256,10 @@ begin
                 sigZ(ii+1) <= sigZ(ii) - ROM_NEW(ii);
             end if;
         end loop;
-		
     end if;
 end process;
 
-dt_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH downto 1) when rising_edge(clk);
-dt_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH downto 1) when rising_edge(clk);
-
--- -- function fn_atan return rom_array is
-	-- -- variable ret    : rom_array;
--- -- begin					
-	-- -- for ii in 0 to DATA_WIDTH-2 loop
-		-- -- ret(DATA_WIDTH-1-ii) := ROM_LUT32(30-ii)(PHASE_WIDTH-1 downto 0);
-	-- -- end loop;
-	-- -- return ret;
--- -- end function fn_atan;
-
--- -- constant ROM_LUT : rom_array := fn_atan; 
--- type rom_real is array (0 to DATA_WIDTH-2) of real;
--- function calc_real return rom_real is
-	-- variable ret    : rom_real;
--- begin					
-	-- for ii in 0 to DATA_WIDTH-2 loop
-		-- -- ret(ii) := ROUND(ARCTAN(2.0**(-ii)) * (2.0**(PHASE_WIDTH))/(2.0*MATH_PI));
-		-- ret(ii) := ARCTAN(2.0**(-ii));
-	-- end loop;
-	-- return ret;
--- end function calc_real;
-
--- constant ROM_RL : rom_real := calc_real; 
-
--- function calc_atan return rom_array is
-	-- variable ret    : rom_array;
--- begin					
-	-- for ii in 0 to DATA_WIDTH-2 loop
-		-- ret(ii) := CONV_STD_LOGIC_VECTOR(integer(ROUND(ARCTAN(1.0/2.0**(ii-1)) * (2.0**(PHASE_WIDTH-1))/(MATH_PI))), PHASE_WIDTH);
-	-- end loop;
-	-- return ret;
--- end function calc_atan;
-
--- constant ROM_LUT : rom_array := calc_atan; 
+dt_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+2 downto 2+1) when rising_edge(clk);
+dt_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+2 downto 2+1) when rising_edge(clk);
 
 end cordic_dds;
