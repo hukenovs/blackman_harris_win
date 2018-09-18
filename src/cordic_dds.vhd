@@ -66,9 +66,11 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
 use ieee.std_logic_signed.all;
 
-use ieee.MATH_REAL.MATH_PI;
-use ieee.MATH_REAL.ROUND;
-use ieee.MATH_REAL.ARCTAN;
+use ieee.math_real.all;
+
+-- use ieee.MATH_REAL.MATH_PI;
+-- use ieee.MATH_REAL.ROUND;
+-- use ieee.MATH_REAL.ARCTAN;
 
 entity cordic_dds is
 	generic (
@@ -102,12 +104,31 @@ end function fn_log2;
 
 
 ---------------- Constant declaration ----------------
-constant POWER			: real:=(2.0**(DATA_WIDTH+2)-1.0)/1.65; --! FIX THIS 1.6467; --! FIX THIS
+function fn_magn return real is
+	variable ret_val : real := 0.0; 
+	variable tmp_val : real := 1.0; 
+begin					
+	for ii in 0 to DATA_WIDTH loop
+		ret_val := SQRT(1.0+2.0**(-2*ii));
+		tmp_val := tmp_val*ret_val;     
+	end loop;
+	-- ret_val := (2.0**(DATA_WIDTH+2)-1.0)/(tmp_val+0.000001);
+	
+	if (DATA_WIDTH > 29) then
+		ret_val := (2.0**(DATA_WIDTH-1)-1.0)/(tmp_val+0.000001);
+	else
+		ret_val := (2.0**(DATA_WIDTH+2)-1.0)/(tmp_val+0.000001);
+	end if;
+	return ret_val;
+end function;
+
+-- constant POWER			: real:=(2.0**(DATA_WIDTH+2)-1.0)/1.65; --! FIX THIS 1.6467; --! FIX THIS
+-- constant POWER			: real:=(2.0**(DATA_WIDTH+2)-1.0)/fn_magn; --! FIX THIS 1.6467; --! FIX THIS
+constant POWER			: real:=fn_magn; --! FIX THIS 1.6467; --! FIX THIS
 constant GAIN			: std_logic_vector(DATA_WIDTH+2 downto 0):=conv_std_logic_vector(integer(POWER), DATA_WIDTH+3);
 
 constant SHIFT_LEN		: integer:=fn_log2(DATA_WIDTH)+1;
 constant SHIFT_PHI		: integer:=DATA_WIDTH-PHASE_WIDTH+1;
-
 
 ---------------- ROM: Look up table for CORDIC ----------------
 ---- Result of [ATAN(2^-i) * (2^32/360)] rounded and converted to HEX
@@ -224,19 +245,19 @@ begin
 end process;
 
 ---------------------------------------------------------------------
----------------- Compute Angle array -------------------------------- 
+---------------- Compute Angle array and X/Y ------------------------ 
 ---------------------------------------------------------------------
 pr_crd: process(clk, reset)
 begin
     if (reset = '1') then
         for ii in 0 to (DATA_WIDTH-1) loop
             sigX(ii) <= (others => '0');
-            sigY(ii) <= (others => '0');            
+            sigY(ii) <= (others => '0');
 			sigZ(ii) <= (others => '0');
         end loop;
     elsif rising_edge(clk) then
         sigX(0) <= init_x;
-        sigY(0) <= init_y;        
+        sigY(0) <= init_y; 
 		sigZ(0) <= init_z;
 		---- calculate sine & cosine ----
         xl: for ii in 0 to DATA_WIDTH-2 loop
