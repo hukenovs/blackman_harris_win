@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 --
 -- Title       : cordic_dds
--- Design      : CORDIC HDL
+-- Design      : Blackman-Harris Windows
 -- Author      : Kapitanov Alexander
 -- Company     : 
 -- E-mail      : sallador@bk.ru
@@ -86,13 +86,13 @@ entity cordic_dds is
 		DATA_WIDTH		: integer := 16 -- Output width: sets magnitude of signal
 	);
 	port (
-		clk             : in  std_logic; --! Clock source
-		reset           : in  std_logic; --! Positive reset: '1' - reset, '0' - calculate
-		ph_in           : in  std_logic_vector(PHASE_WIDTH-1 downto 0); --! Input phase increment
-		ph_en           : in  std_logic; --! Input phase enable
-		dt_sin          : out std_logic_vector(DATA_WIDTH-1 downto 0); --! Output sine value
-		dt_cos          : out std_logic_vector(DATA_WIDTH-1 downto 0); --! Output cosine value
-		dt_val          : out std_logic --! Output data valid
+		CLK             : in  std_logic; --! Clock source
+		RESET           : in  std_logic; --! Positive reset: '1' - reset, '0' - calculate
+		PH_IN           : in  std_logic_vector(PHASE_WIDTH-1 downto 0); --! Input phase increment
+		PH_EN           : in  std_logic; --! Input phase enable
+		DT_SIN          : out std_logic_vector(DATA_WIDTH-1 downto 0); --! Output sine value
+		DT_COS          : out std_logic_vector(DATA_WIDTH-1 downto 0); --! Output cosine value
+		DT_VAL          : out std_logic --! Output data valid
 	);
 end cordic_dds;
 
@@ -286,11 +286,11 @@ begin
     end if;
 end process;
 
-dt_val <= dt_vld(dt_vld'left-1 downto 0) & ph_en when rising_edge(clk);
+dt_vld <= dt_vld(dt_vld'left-1 downto 0) & ph_en when rising_edge(clk);
 
 ---- Output data ----
 dt_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+2 downto 2+1) when rising_edge(clk);
 dt_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+2 downto 2+1) when rising_edge(clk);
-dt_ena <= dt_vld(dt_vld'left) when rising_edge(clk);
+dt_val <= dt_vld(dt_vld'left) when rising_edge(clk);
 
 end cordic_dds;
