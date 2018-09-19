@@ -98,7 +98,7 @@ begin
 
 xWIN5: entity work.bh_win_5term 
 	generic map(
-		PHI_WIDTH	=> 10,
+		PHI_WIDTH	=> 16,
 		DAT_WIDTH	=> CNST_WIDTH
 	)
 	port map (
@@ -116,7 +116,7 @@ xWIN5: entity work.bh_win_5term
 
 xWIN3: entity work.bh_win_3term 
 	generic map(
-		PHI_WIDTH	=> 10,
+		PHI_WIDTH	=> 16,
 		DAT_WIDTH	=> CNST_WIDTH
 	)
 	port map (
@@ -132,7 +132,7 @@ xWIN3: entity work.bh_win_3term
 
 xWIN4: entity work.bh_win_4term 
 	generic map(
-		PHI_WIDTH	=> 10,
+		PHI_WIDTH	=> 16,
 		DAT_WIDTH	=> CNST_WIDTH
 	)
 	port map (
