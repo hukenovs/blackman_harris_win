@@ -41,10 +41,10 @@ use ieee.std_logic_1164.all;
 use IEEE.std_logic_arith.all;
 use IEEE.std_logic_unsigned.all;
 
-entity tb_cordic_dds is
-end tb_cordic_dds;
+entity tb_windows is
+end tb_windows;
 
-architecture testbench of tb_cordic_dds is
+architecture testbench of tb_windows is
 
 constant PHASE_WIDTH	: integer:=11;
 constant DATA_WIDTH		: integer:=16;
@@ -61,34 +61,45 @@ constant CLK_PERIOD 	: time := 10 ns;
 constant CLK_TD 		: time := 0.5 ns;
 
 
-constant CNST_WIDTH			: integer:=16;
+constant CNST_WIDTH			: integer:=32;
 constant CNST_FLT0			: real:=0.3232153788877343;
 constant CNST_FLT1			: real:=0.4714921439576260;
 constant CNST_FLT2			: real:=0.1755341299601972;
 constant CNST_FLT3			: real:=0.0284969901061499;
 constant CNST_FLT4			: real:=0.0012613570882927;
 
-constant CNST_STD0			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT0*(2.0**(CNST_WIDTH)-1.0)),CNST_WIDTH);
-constant CNST_STD1			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT1*(2.0**(CNST_WIDTH)-1.0)),CNST_WIDTH);
-constant CNST_STD2			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT2*(2.0**(CNST_WIDTH)-1.0)),CNST_WIDTH);
-constant CNST_STD3			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT3*(2.0**(CNST_WIDTH)-1.0)),CNST_WIDTH);
-constant CNST_STD4			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT4*(2.0**(CNST_WIDTH)-1.0)),CNST_WIDTH);
+constant CNST_STD0			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT0*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
+constant CNST_STD1			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT1*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
+constant CNST_STD2			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT2*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
+constant CNST_STD3			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT3*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
+constant CNST_STD4			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT4*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
 
 
 constant CNT3_FLT0			: real:=0.42;
 constant CNT3_FLT1			: real:=0.5;
 constant CNT3_FLT2			: real:=0.08;
 
-constant CNT3_STD0			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT0*(2.0**(CNST_WIDTH)-1.0)),CNST_WIDTH);
-constant CNT3_STD1			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT1*(2.0**(CNST_WIDTH)-1.0)),CNST_WIDTH);
-constant CNT3_STD2			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT2*(2.0**(CNST_WIDTH)-1.0)),CNST_WIDTH);
+constant CNT3_STD0			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT0*(2.0**(CNST_WIDTH)-16.0)), CNST_WIDTH);
+constant CNT3_STD1			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT1*(2.0**(CNST_WIDTH)-16.0)), CNST_WIDTH);
+constant CNT3_STD2			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT2*(2.0**(CNST_WIDTH)-16.0)), CNST_WIDTH);
+
+constant CNT4_FLT0			: real:= 0.35875;
+constant CNT4_FLT1			: real:= 0.48829;
+constant CNT4_FLT2			: real:= 0.14128;
+constant CNT4_FLT3			: real:= 0.01168;
+
+constant CNT4_STD0			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT0*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
+constant CNT4_STD1			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT1*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
+constant CNT4_STD2			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT2*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
+constant CNT4_STD3			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT3*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
+
 
 begin
 
-xWIN: entity work.bh_win_5term 
+xWIN5: entity work.bh_win_5term 
 	generic map(
 		PHI_WIDTH	=> 10,
-		DAT_WIDTH	=> 16
+		DAT_WIDTH	=> CNST_WIDTH
 	)
 	port map (
 		RESET  		=> rst,
@@ -106,7 +117,7 @@ xWIN: entity work.bh_win_5term
 xWIN3: entity work.bh_win_3term 
 	generic map(
 		PHI_WIDTH	=> 10,
-		DAT_WIDTH	=> 16
+		DAT_WIDTH	=> CNST_WIDTH
 	)
 	port map (
 		RESET  		=> rst,
@@ -119,7 +130,23 @@ xWIN3: entity work.bh_win_3term
 		ENABLE		=> ph_en	
 	);
 
+xWIN4: entity work.bh_win_4term 
+	generic map(
+		PHI_WIDTH	=> 10,
+		DAT_WIDTH	=> CNST_WIDTH
+	)
+	port map (
+		RESET  		=> rst,
+		CLK 		=> clk,
 
+		CNST0		=> CNT4_STD0,
+		CNST1		=> CNT4_STD1,
+		CNST2		=> CNT4_STD2,
+		CNST3		=> CNT4_STD3,
+
+		ENABLE		=> ph_en	
+	);
+	
 UUT: entity work.cordic_dds
 	generic map (
 		PHASE_WIDTH		=> PHASE_WIDTH,
