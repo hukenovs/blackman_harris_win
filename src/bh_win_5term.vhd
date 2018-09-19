@@ -10,22 +10,45 @@
 --               Configurable data length and number of terms.
 --
 -------------------------------------------------------------------------------
-
+-------------------------------------------------------------------------------
+--
+--	GNU GENERAL PUBLIC LICENSE
+--  Version 3, 29 June 2007
+--
+--	Copyright (c) 2018 Kapitanov Alexander
+--
+--  This program is free software: you can redistribute it and/or modify
+--  it under the terms of the GNU General Public License as published by
+--  the Free Software Foundation, either version 3 of the License, or
+--  (at your option) any later version.
+--
+--  You should have received a copy of the GNU General Public License
+--  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--
+--  THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+--  APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT 
+--  HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY 
+--  OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, 
+--  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR 
+--  PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM 
+--  IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF 
+--  ALL NECESSARY SERVICING, REPAIR OR CORRECTION. 
+-- 
+-------------------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;   
 use ieee.std_logic_arith.all;
 use ieee.std_logic_signed.all;
 
-library unisim;
-use unisim.vcomponents.DSP48E1;
-use unisim.vcomponents.DSP48E2;
+-- library unisim;
+-- use unisim.vcomponents.DSP48E1;
+-- use unisim.vcomponents.DSP48E2;
 
 entity bh_win_5term is
 	generic(
 		TD			: time:=0.5ns;		--! Time delay
 		PHI_WIDTH	: integer:=10;		--! Signal period = 2^PHI_WIDTH
-		DAT_WIDTH	: integer:=16;		--! Output data width
-		SERIES		: string:="NEW"		--! Xilinx series: NEW - DSP48E2, OLD - DSP48E1
+		DAT_WIDTH	: integer:=16		--! Output data width
 	);
 	port(
 		RESET  		: in  std_logic;	--! Global reset 
@@ -88,7 +111,7 @@ signal dsp_r4			: std_logic_vector(DAT_WIDTH downto 0);
 ---------------- DSP48 signals ----------------
 signal dsp_pp			: std_logic_vector(DAT_WIDTH+1 downto 0);
 signal vldx				: std_logic;
-signal ena_zz			: std_logic_vector(40 downto 0);
+signal ena_zz			: std_logic_vector(DAT_WIDTH+4 downto 0);
 
 attribute USE_DSP : string;
 attribute USE_DSP of dsp_pp : signal is "YES";
@@ -230,10 +253,10 @@ xMLT4: entity work.int_multNxN_dsp48
 ---------------- DSP48E2 1-2 ----------------
 dsp_b0 <= CNST0 after td when rising_edge(clk);
 
-dsp_r1 <= mult_p1(2*DAT_WIDTH-1 downto DAT_WIDTH-2) after td when rising_edge(clk);
-dsp_r2 <= mult_p2(2*DAT_WIDTH-1 downto DAT_WIDTH-2) after td when rising_edge(clk);
-dsp_r3 <= mult_p3(2*DAT_WIDTH-1 downto DAT_WIDTH-2) after td when rising_edge(clk);
-dsp_r4 <= mult_p4(2*DAT_WIDTH-1 downto DAT_WIDTH-2) after td when rising_edge(clk);
+dsp_r1 <= mult_p1(2*DAT_WIDTH-2 downto DAT_WIDTH-2) after td when rising_edge(clk);
+dsp_r2 <= mult_p2(2*DAT_WIDTH-2 downto DAT_WIDTH-2) after td when rising_edge(clk);
+dsp_r3 <= mult_p3(2*DAT_WIDTH-2 downto DAT_WIDTH-2) after td when rising_edge(clk);
+dsp_r4 <= mult_p4(2*DAT_WIDTH-2 downto DAT_WIDTH-2) after td when rising_edge(clk);
 
 ---------------- Round data from 25 to 24 bits ----------------
 pr_rnd: process(clk) is
@@ -271,7 +294,11 @@ end process;
 pr_add: process(clk) is
 begin
 	if rising_edge(clk) then
-		dsp_pp <= SIGNED(dsp_b4) + SIGNED(dsp_b3) + SIGNED(dsp_b2) + SIGNED(dsp_b1) + SIGNED(dsp_b0);
+		dsp_pp <= 	(dsp_b4(DAT_WIDTH-1) & dsp_b4(DAT_WIDTH-1) & dsp_b4) + 
+					(dsp_b3(DAT_WIDTH-1) & dsp_b3(DAT_WIDTH-1) & dsp_b3) + 
+					(dsp_b2(DAT_WIDTH-1) & dsp_b2(DAT_WIDTH-1) & dsp_b2) + 
+					(dsp_b1(DAT_WIDTH-1) & dsp_b1(DAT_WIDTH-1) & dsp_b1) + 
+					(dsp_b0(DAT_WIDTH-1) & dsp_b0(DAT_WIDTH-1) & dsp_b0); 
 	end if;
 end process;
 
