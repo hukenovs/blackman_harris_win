@@ -1,21 +1,22 @@
 -------------------------------------------------------------------------------
 --
--- Title       : bh_win_5term
+-- Title       : bh_win_3term
 -- Design      : Blackman-Harris Windows
 -- Author      : Kapitanov Alexander
 -- Company     : 
 -- E-mail      : sallador@bk.ru
 --
--- Description : Simple Blackman-Harris window function: 5- term
+-- Description : Simple Blackman-Harris window function: 3- term
 --               Configurable data length and number of terms.
 --
--- Best constants {0-4} (gain for harmonics): type - REAL (float IEEE-754)
---   CNST_FLT0 = 0.3232153788877343;
---   CNST_FLT1 = 0.4714921439576260;
---   CNST_FLT2 = 0.1755341299601972;
---   CNST_FLT3 = 0.0284969901061499;
---   CNST_FLT4 = 0.0012613570882927;
+-- Constants {0-2} (gain for harmonics): type - REAL (float IEEE-754)
+--   CNST_FLT0 = (1 - alpha)/2;
+--   CNST_FLT1 = 1/2;
+--   CNST_FLT2 = alpha/2;
 --
+--     where:
+--       alpha = 0.16 (a0 = 0.42, a1 = 0.5, a2 = 0.08). Signal gain -58 dB.
+-- 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 --
@@ -51,7 +52,7 @@ use ieee.std_logic_signed.all;
 -- use unisim.vcomponents.DSP48E1;
 -- use unisim.vcomponents.DSP48E2;
 
-entity bh_win_5term is
+entity bh_win_3term is
 	generic(
 		TD			: time:=0.5ns;		--! Time delay
 		PHI_WIDTH	: integer:=10;		--! Signal period = 2^PHI_WIDTH
@@ -64,56 +65,40 @@ entity bh_win_5term is
 		CNST0		: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A0
 		CNST1		: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A1
 		CNST2		: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A2
-		CNST3		: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A3
-		CNST4		: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A4
 
 		ENABLE		: in  std_logic;	--! Input data enable block = NFFT clocks
 		DT_WIN		: out std_logic_vector(DAT_WIDTH-1 downto 0);	--! Output (cos)	
 		DT_VLD		: out std_logic		--! Output data valid	
 	);
-end bh_win_5term;
+end bh_win_3term;
 
-architecture bh_win_5term of bh_win_5term is
+architecture bh_win_3term of bh_win_3term is
 
 ---------------- Cordic signals ----------------
 signal cos1				: std_logic_vector(DAT_WIDTH-1 downto 0);
 signal cos2				: std_logic_vector(DAT_WIDTH-1 downto 0);
-signal cos3				: std_logic_vector(DAT_WIDTH-1 downto 0);
-signal cos4				: std_logic_vector(DAT_WIDTH-1 downto 0);
 
 signal ph_in1			: std_logic_vector(PHI_WIDTH-1 downto 0);
 signal ph_in2			: std_logic_vector(PHI_WIDTH-1 downto 0);
-signal ph_in3			: std_logic_vector(PHI_WIDTH-1 downto 0);
-signal ph_in4			: std_logic_vector(PHI_WIDTH-1 downto 0);
+
 
 ---------------- Multiplier signals ----------------
 signal mult_a1			: std_logic_vector(DAT_WIDTH-1 downto 0);
 signal mult_a2			: std_logic_vector(DAT_WIDTH-1 downto 0);
-signal mult_a3			: std_logic_vector(DAT_WIDTH-1 downto 0);
-signal mult_a4			: std_logic_vector(DAT_WIDTH-1 downto 0);
 
 signal mult_b1			: std_logic_vector(DAT_WIDTH-1 downto 0);
 signal mult_b2			: std_logic_vector(DAT_WIDTH-1 downto 0);
-signal mult_b3			: std_logic_vector(DAT_WIDTH-1 downto 0);
-signal mult_b4			: std_logic_vector(DAT_WIDTH-1 downto 0);
-
 
 signal mult_p1			: std_logic_vector(2*DAT_WIDTH-1 downto 0);
 signal mult_p2			: std_logic_vector(2*DAT_WIDTH-1 downto 0);
-signal mult_p3			: std_logic_vector(2*DAT_WIDTH-1 downto 0);
-signal mult_p4			: std_logic_vector(2*DAT_WIDTH-1 downto 0);
 
 ---------------- Product signals ----------------
 signal dsp_b0			: std_logic_vector(DAT_WIDTH-1 downto 0);
 signal dsp_b1			: std_logic_vector(DAT_WIDTH-1 downto 0);
 signal dsp_b2			: std_logic_vector(DAT_WIDTH-1 downto 0);
-signal dsp_b3			: std_logic_vector(DAT_WIDTH-1 downto 0);
-signal dsp_b4			: std_logic_vector(DAT_WIDTH-1 downto 0);
 
 signal dsp_r1			: std_logic_vector(DAT_WIDTH downto 0);
 signal dsp_r2			: std_logic_vector(DAT_WIDTH downto 0);
-signal dsp_r3			: std_logic_vector(DAT_WIDTH downto 0);
-signal dsp_r4			: std_logic_vector(DAT_WIDTH downto 0);
 
 ---------------- DSP48 signals ----------------
 signal dsp_pp			: std_logic_vector(DAT_WIDTH+1 downto 0);
@@ -128,13 +113,9 @@ begin
 ---------------- Multiplier ----------------
 mult_a1 <= CNST1 after td when rising_edge(clk);
 mult_a2 <= CNST2 after td when rising_edge(clk);
-mult_a3 <= CNST3 after td when rising_edge(clk);
-mult_a4 <= CNST4 after td when rising_edge(clk);
 
 mult_b1 <= cos1 after td when rising_edge(clk);
 mult_b2 <= cos2 after td when rising_edge(clk);
-mult_b3 <= cos3 after td when rising_edge(clk);
-mult_b4 <= cos4 after td when rising_edge(clk);
 
 ---------------- Counter for phase ----------------
 PR_CNT1: process(clk) is
@@ -143,14 +124,10 @@ begin
 		if (reset = '1') then
 			ph_in1 <= (others => '0') after TD;
 			ph_in2 <= (others => '0') after TD;
-			ph_in3 <= (others => '0') after TD;
-			ph_in4 <= (others => '0') after TD;
 		else
 			if (ENABLE = '1') then
 				ph_in1 <= ph_in1 + 1 after TD;
 				ph_in2 <= ph_in2 + 2 after TD;
-				ph_in3 <= ph_in3 + 3 after TD;
-				ph_in4 <= ph_in4 + 4 after TD;
 			end if;
 		end if;
 	end if;
@@ -206,64 +183,12 @@ xMLT2: entity work.int_multNxN_dsp48
 		CLK		=> clk,
 		RST		=> reset
 	);		
-	
----------------- Twiddle part 3 ----------------	
-xCRD3: entity work.cordic_dds
-    generic map (
-        DATA_WIDTH	=> DAT_WIDTH,
-        PHASE_WIDTH	=> PHI_WIDTH
-    )	
-    port map (		   
-        RESET	=> reset,
-        CLK		=> clk,
-        PH_IN	=> ph_in3,
-        PH_EN	=> ENABLE,
-		DT_COS	=> cos3, 
-		DT_VAL	=> vldx
-    );
 
-xMLT3: entity work.int_multNxN_dsp48
-	generic map ( DTW => DAT_WIDTH)
-	port map (
-		DAT_A	=> mult_a3,
-		DAT_B	=> mult_b3,
-		DAT_Q	=> mult_p3,
-		CLK		=> clk,
-		RST		=> reset
-	);		
-
----------------- Twiddle part 4 ----------------
-xCRD4: entity work.cordic_dds
-    generic map (
-        DATA_WIDTH	=> DAT_WIDTH,
-        PHASE_WIDTH	=> PHI_WIDTH
-    )	
-    port map (		   
-        RESET	=> reset,
-        CLK		=> clk,
-        PH_IN	=> ph_in4,
-        PH_EN	=> ENABLE,
-		DT_COS	=> cos4, 
-		DT_VAL	=> vldx
-    );
-
-xMLT4: entity work.int_multNxN_dsp48
-	generic map ( DTW => DAT_WIDTH)
-	port map (
-		DAT_A	=> mult_a4,
-		DAT_B	=> mult_b4,
-		DAT_Q	=> mult_p4,
-		CLK		=> clk,
-		RST		=> reset
-	);	
-	
 ---------------- DSP48E2 1-2 ----------------
 dsp_b0 <= CNST0 after td when rising_edge(clk);
 
 dsp_r1 <= mult_p1(2*DAT_WIDTH-2 downto DAT_WIDTH-2) after td when rising_edge(clk);
 dsp_r2 <= mult_p2(2*DAT_WIDTH-2 downto DAT_WIDTH-2) after td when rising_edge(clk);
-dsp_r3 <= mult_p3(2*DAT_WIDTH-2 downto DAT_WIDTH-2) after td when rising_edge(clk);
-dsp_r4 <= mult_p4(2*DAT_WIDTH-2 downto DAT_WIDTH-2) after td when rising_edge(clk);
 
 ---------------- Round data from 25 to 24 bits ----------------
 pr_rnd: process(clk) is
@@ -280,20 +205,7 @@ begin
 			dsp_b2 <= dsp_r2(DAT_WIDTH downto 1) after td;
 		else
 			dsp_b2 <= dsp_r2(DAT_WIDTH downto 1) + 1 after td;
-		end if;
-		---- Round 3 ----
-		if (dsp_r3(0) = '0') then
-			dsp_b3 <= dsp_r3(DAT_WIDTH downto 1) after td;
-		else
-			dsp_b3 <= dsp_r3(DAT_WIDTH downto 1) + 1 after td;
-		end if;
-		---- Round 4 ----
-		if (dsp_r4(0) = '0') then
-			dsp_b4 <= dsp_r4(DAT_WIDTH downto 1) after td;
-		else
-			dsp_b4 <= dsp_r4(DAT_WIDTH downto 1) + 1 after td;
-		end if;
-		
+		end if;	
 	end if;
 end process;
 
@@ -301,9 +213,7 @@ end process;
 pr_add: process(clk) is
 begin
 	if rising_edge(clk) then
-		dsp_pp <= 	(dsp_b4(DAT_WIDTH-1) & dsp_b4(DAT_WIDTH-1) & dsp_b4) + 
-					(dsp_b3(DAT_WIDTH-1) & dsp_b3(DAT_WIDTH-1) & dsp_b3) + 
-					(dsp_b2(DAT_WIDTH-1) & dsp_b2(DAT_WIDTH-1) & dsp_b2) + 
+		dsp_pp <= 	(dsp_b2(DAT_WIDTH-1) & dsp_b2(DAT_WIDTH-1) & dsp_b2) + 
 					(dsp_b1(DAT_WIDTH-1) & dsp_b1(DAT_WIDTH-1) & dsp_b1) + 
 					(dsp_b0(DAT_WIDTH-1) & dsp_b0(DAT_WIDTH-1) & dsp_b0); 
 	end if;
@@ -324,4 +234,4 @@ begin
 	end if;
 end process;   
 
-end bh_win_5term;
+end bh_win_3term;
