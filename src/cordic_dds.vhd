@@ -91,7 +91,8 @@ entity cordic_dds is
 		ph_in           : in  std_logic_vector(PHASE_WIDTH-1 downto 0); --! Input phase increment
 		ph_en           : in  std_logic; --! Input phase enable
 		dt_sin          : out std_logic_vector(DATA_WIDTH-1 downto 0); --! Output sine value
-		dt_cos          : out std_logic_vector(DATA_WIDTH-1 downto 0) --! Output cosine value
+		dt_cos          : out std_logic_vector(DATA_WIDTH-1 downto 0); --! Output cosine value
+		dt_val          : out std_logic --! Output data valid
 	);
 end cordic_dds;
 
@@ -164,12 +165,6 @@ end function CALC_ATAN;
 constant ROM_NEW	: rom_array := CALC_ATAN;
 
 ---------------- Signal declaration ----------------
-signal init_x			: std_logic_vector(DATA_WIDTH+2 downto 0);
-signal init_y			: std_logic_vector(DATA_WIDTH+2 downto 0);
-signal init_t			: std_logic_vector(PHASE_WIDTH-1 downto 0);
-signal init_z			: std_logic_vector(DATA_WIDTH-1 downto 0);
-
-
 type dat_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+2 downto 0);
 type phi_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
 
@@ -177,8 +172,13 @@ signal sigX				: dat_array := (others => (others => '0'));
 signal sigY				: dat_array := (others => (others => '0'));
 signal sigZ 			: phi_array := (others => (others => '0'));
 
-signal quadrant			: std_logic_vector(1 downto 0);
+signal init_x			: std_logic_vector(DATA_WIDTH+2 downto 0);
+signal init_y			: std_logic_vector(DATA_WIDTH+2 downto 0);
+signal init_t			: std_logic_vector(PHASE_WIDTH-1 downto 0);
+signal init_z			: std_logic_vector(DATA_WIDTH-1 downto 0);
 
+signal quadrant			: std_logic_vector(1 downto 0);
+signal dt_vld			: std_logic_vector(DATA_WIDTH-1 downto 0);
 
 begin
 
@@ -286,7 +286,11 @@ begin
     end if;
 end process;
 
+dt_val <= dt_vld(dt_vld'left-1 downto 0) & ph_en when rising_edge(clk);
+
+---- Output data ----
 dt_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+2 downto 2+1) when rising_edge(clk);
 dt_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+2 downto 2+1) when rising_edge(clk);
+dt_ena <= dt_vld(dt_vld'left) when rising_edge(clk);
 
 end cordic_dds;
