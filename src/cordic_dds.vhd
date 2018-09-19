@@ -21,8 +21,16 @@
 --  y0 - initialized to 0;
 --  z0 - initialized to the THETA input argument value (phase);
 --
+--  Sine mode:
+--  x0 - initialized to 0;
+--  y0 - initialized to (+/-)1/Magnitude = 1/2^(WIDTH);
+--  z0 - initialized to the THETA input argument value (phase);
+--
 --  Phase radians - Look up table array ROM [WIDTH-1 : 0]
 --  Formula: Angle = Round[atan(2^-i) * (2^32/(2*pi))] where i - variable of ROM array
+--
+--  Gain for output signal is production of:
+--      Gain = PROD[ SQRT(1.0+2.0**(-2*i)) ], where i = 0 to DATA_WIDTH.
 --
 --  Example: WIDTH = 16: create ROM array from 0 to 14:
 --    { 0x2000, 0x12E4, 0x09FB, 0x0511, 0x028B, 0x0146, 0x00A3, 0x0051
@@ -32,7 +40,7 @@
 --    > 1 LUT,
 --    > 2 shifts,
 --    > 3 additions,
---  per iteration.
+--        per iteration.
 --
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -106,21 +114,28 @@ end function fn_log2;
 ---------------- Constant declaration ----------------
 function fn_magn return std_logic_vector is
 	variable ret_val : real := 0.0; 
-	variable tmp_val : real := 1.0; 
+	-- variable tmp_val : real := 1.0; 
 	constant sig_val : std_logic_vector(DATA_WIDTH+2 downto 0):=(DATA_WIDTH+2 => '0', others => '1'); 
 	variable sig_mgn : std_logic_vector(31 downto 0); 
 	variable sig_ret : std_logic_vector(DATA_WIDTH+2+32 downto 0); 
 begin					
-	for ii in 0 to DATA_WIDTH+2 loop
-		ret_val := SQRT(1.0+2.0**(-2*ii));
-		tmp_val := tmp_val*ret_val;     
-	end loop;
-	-- 0.00001 from 12 to 19 --
-	-- 0.000001 from 20 to 22 --
-	-- 0.0000001 from 23 to 25 --
+	-- for ii in 0 to DATA_WIDTH+2 loop
+		-- ret_val := SQRT(1.0+2.0**(-2*ii));
+		-- tmp_val := tmp_val*ret_val;     
+	-- end loop;
+	-- ret_val := 2.0**31/(tmp_val+0.0000001); -- equal ~1.64676025812107...
 	
-	ret_val := 2.0**31/(tmp_val+0.0000001); -- equal ~1.6467...
-	ret_val := 2.0**31/(1.6468); -- equal ~1.6467...
+	if (DATA_WIDTH < 12) then
+		ret_val := 1.65;
+	elsif ((DATA_WIDTH >= 12) and (DATA_WIDTH < 22)) then
+		ret_val := 1.6468;
+	elsif ((DATA_WIDTH >= 22) and (DATA_WIDTH < 32)) then	
+		ret_val := 1.646765;
+	else
+		ret_val := 1.6467603;
+	end if;
+	
+	ret_val := 2.0**31/ret_val; -- equal ~1.6467...
 	sig_mgn := conv_std_logic_vector(integer(ret_val), 32);
 	sig_ret := sig_mgn * sig_val;
 
@@ -149,8 +164,6 @@ end function CALC_ATAN;
 constant ROM_NEW	: rom_array := CALC_ATAN;
 
 ---------------- Signal declaration ----------------
-
-
 signal init_x			: std_logic_vector(DATA_WIDTH+2 downto 0);
 signal init_y			: std_logic_vector(DATA_WIDTH+2 downto 0);
 signal init_t			: std_logic_vector(PHASE_WIDTH-1 downto 0);
@@ -169,7 +182,26 @@ signal quadrant			: std_logic_vector(1 downto 0);
 
 begin
 
----- Calculate Quadrant: two MSBs of input phase ----
+---------------------------------------------------------------------
+---------------- Convert phase width  -------------------------------
+---------------------------------------------------------------------
+xGEN_ZERO: if (DATA_WIDTH-PHASE_WIDTH+1 = 0) generate
+	init_z <= init_t(DATA_WIDTH-1 downto 0);
+end generate;
+
+xGEN_MORE: if (DATA_WIDTH-PHASE_WIDTH+1 > 0) generate
+	constant ZEROS : std_logic_vector(DATA_WIDTH-PHASE_WIDTH downto 0):=(others=>'0');
+begin
+	init_z <= init_t(PHASE_WIDTH-2 downto 0) & ZEROS;
+end generate;
+
+xGEN_LESS: if (DATA_WIDTH-PHASE_WIDTH+1 < 0) generate
+	init_z <= init_t(PHASE_WIDTH-2 downto (PHASE_WIDTH-DATA_WIDTH-1));
+end generate;
+
+---------------------------------------------------------------------
+---------------- Calculate Quadrant: two MSBs of input phase --------
+---------------------------------------------------------------------
 quadrant <= ph_in(ph_in'left downto ph_in'left-1);
 
 pr_phi: process(clk) is
@@ -190,34 +222,6 @@ begin
 	end if;
 end process;
 
-
-xGEN_ZERO: if (DATA_WIDTH-PHASE_WIDTH+1 = 0) generate
-begin
-	init_z <= init_t(DATA_WIDTH-1 downto 0);
-end generate;
-
-xGEN_MORE: if (DATA_WIDTH-PHASE_WIDTH+1 > 0) generate
-	constant ZEROS : std_logic_vector(DATA_WIDTH-PHASE_WIDTH downto 0):=(others=>'0');
-begin
-	init_z <= init_t(PHASE_WIDTH-2 downto 0) & ZEROS;
-end generate;
-
-xGEN_LESS: if (DATA_WIDTH-PHASE_WIDTH+1 < 0) generate
-begin
-	init_z <= init_t(PHASE_WIDTH-(PHASE_WIDTH-DATA_WIDTH-1)-1 downto (PHASE_WIDTH-DATA_WIDTH-1));
-end generate;
-
-
-
-
--- xGEN_COM: if (DATA_WIDTH-PHASE_WIDTH-2 > 0) generate
-	-- constant ZEROS : std_logic_vector(DATA_WIDTH-PHASE_WIDTH-2 downto 0):=(others=>'0');
--- begin	
-	-- init_z <= init_t & ZEROS;
--- end generate;
--- xGEN_COM: if (DATA_WIDTH-PHASE_WIDTH <= 0) generate
-	-- init_z <= init_t;
--- end generate;
 ---------------------------------------------------------------------
 ---------------- Registered: initial values for X, Y, Z -------------
 ---------------------------------------------------------------------
