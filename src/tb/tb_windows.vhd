@@ -1,12 +1,12 @@
 -------------------------------------------------------------------------------
 --
--- Title       : cordic_dds
--- Design      : CORDIC HDL
+-- Title       : tb_windows
+-- Design      : Blackman-Harris Windows
 -- Author      : Kapitanov Alexander
 -- Company     : 
 -- E-mail      : sallador@bk.ru
 --
--- Description : Simple cordic algorithm for sine and cosine generator (DDS)
+-- Description : Simple model for calculating window functions (upto 7 terms)
 --
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -44,139 +44,70 @@ use IEEE.std_logic_unsigned.all;
 entity tb_windows is
 end tb_windows;
 
+
 architecture testbench of tb_windows is
 
-constant PHASE_WIDTH	: integer:=11;
-constant DATA_WIDTH		: integer:=16;
-
-signal clk   			: std_logic:='0';
-signal rst   			: std_logic:='0';
-signal ph_in			: std_logic_vector(PHASE_WIDTH-1 downto 0);
-signal ph_en			: std_logic;
-signal sine  			: std_logic_vector(DATA_WIDTH-1 downto 0);
-signal cosine			: std_logic_vector(DATA_WIDTH-1 downto 0);
-
-
-constant CLK_PERIOD 	: time := 10 ns;
-constant CLK_TD 		: time := 0.5 ns;
-
-
-constant CNST_WIDTH			: integer:=32;
-constant CNST_FLT0			: real:=0.3232153788877343;
-constant CNST_FLT1			: real:=0.4714921439576260;
-constant CNST_FLT2			: real:=0.1755341299601972;
-constant CNST_FLT3			: real:=0.0284969901061499;
-constant CNST_FLT4			: real:=0.0012613570882927;
-
-constant CNST_STD0			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT0*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
-constant CNST_STD1			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT1*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
-constant CNST_STD2			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT2*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
-constant CNST_STD3			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT3*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
-constant CNST_STD4			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNST_FLT4*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
-
-
-constant CNT3_FLT0			: real:=0.42;
-constant CNT3_FLT1			: real:=0.5;
-constant CNT3_FLT2			: real:=0.08;
-
-constant CNT3_STD0			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT0*(2.0**(CNST_WIDTH)-16.0)), CNST_WIDTH);
-constant CNT3_STD1			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT1*(2.0**(CNST_WIDTH)-16.0)), CNST_WIDTH);
-constant CNT3_STD2			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT2*(2.0**(CNST_WIDTH)-16.0)), CNST_WIDTH);
-
-constant CNT4_FLT0			: real:= 0.35875;
-constant CNT4_FLT1			: real:= 0.48829;
-constant CNT4_FLT2			: real:= 0.14128;
-constant CNT4_FLT3			: real:= 0.01168;
-
-constant CNT4_STD0			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT0*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
-constant CNT4_STD1			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT1*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
-constant CNT4_STD2			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT2*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
-constant CNT4_STD3			: std_logic_vector(CNST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT3*(2.0**(CNST_WIDTH)-1.0)), CNST_WIDTH);
-
-
-begin
-
-xWIN5: entity work.bh_win_5term 
-	generic map(
-		PHI_WIDTH	=> 16,
-		DAT_WIDTH	=> CNST_WIDTH
-	)
-	port map (
-		RESET  		=> rst,
-		CLK 		=> clk,
-
-		CNST0		=> CNST_STD0,
-		CNST1		=> CNST_STD1,
-		CNST2		=> CNST_STD2,
-		CNST3		=> CNST_STD3,
-		CNST4		=> CNST_STD4,
-
-		ENABLE		=> ph_en	
-	);
-
-xWIN3: entity work.bh_win_3term 
-	generic map(
-		PHI_WIDTH	=> 16,
-		DAT_WIDTH	=> CNST_WIDTH
-	)
-	port map (
-		RESET  		=> rst,
-		CLK 		=> clk,
-
-		CNST0		=> CNT3_STD0,
-		CNST1		=> CNT3_STD1,
-		CNST2		=> CNT3_STD2,
-
-		ENABLE		=> ph_en	
-	);
-
-xWIN4: entity work.bh_win_4term 
-	generic map(
-		PHI_WIDTH	=> 16,
-		DAT_WIDTH	=> CNST_WIDTH
-	)
-	port map (
-		RESET  		=> rst,
-		CLK 		=> clk,
-
-		CNST0		=> CNT4_STD0,
-		CNST1		=> CNT4_STD1,
-		CNST2		=> CNT4_STD2,
-		CNST3		=> CNT4_STD3,
-
-		ENABLE		=> ph_en	
-	);
+    -------- Common Constants --------
+	constant CLK_PERIOD 	: time := 10 ns;
+	constant CLK_TD 		: time := 0.5 ns;
 	
-UUT: entity work.cordic_dds
-	generic map (
-		PHASE_WIDTH		=> PHASE_WIDTH,
-		DATA_WIDTH		=> DATA_WIDTH
-	)
-	port map (
-		clk				=> clk,
-		reset			=> rst,
-		ph_in			=> ph_in,
-		ph_en			=> ph_en,
-		dt_sin			=> sine,
-		dt_cos			=> cosine
-	);
+	-------- Phase & Data width --------
+	constant PHASE_WIDTH	: integer:=11;
+	constant DATA_WIDTH		: integer:=16;
+	
+	-------- Signal declaration --------
+	signal clk   			: std_logic:='0';
+	signal rst   			: std_logic:='0';
+	signal ph_in			: std_logic_vector(PHASE_WIDTH-1 downto 0);
+	signal ph_en			: std_logic;
 
-clk_phase: process(clk) is
+	-------- Windows constants declaration --------
+	constant CNT5_WIDTH		: integer:=16;
+	-------- 5-term --------
+	constant CNT5_FLT0		: real:=0.3232153788877343;
+	constant CNT5_FLT1		: real:=0.4714921439576260;
+	constant CNT5_FLT2		: real:=0.1755341299601972;
+	constant CNT5_FLT3		: real:=0.0284969901061499;
+	constant CNT5_FLT4		: real:=0.0012613570882927;
+
+	constant CNT5_STD0		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT0*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT5_STD1		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT1*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT5_STD2		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT2*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT5_STD3		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT3*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT5_STD4		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT4*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	
+	-------- 4-term --------
+	constant CNT4_FLT0		: real:= 0.35875;
+	constant CNT4_FLT1		: real:= 0.48829;
+	constant CNT4_FLT2		: real:= 0.14128;
+	constant CNT4_FLT3		: real:= 0.01168;
+	
+	constant CNT4_STD0		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT0*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT4_STD1		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT1*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT4_STD2		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT2*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT4_STD3		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT3*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	
+	-------- 3-term --------
+	constant CNT3_FLT0		: real:=0.42;
+	constant CNT3_FLT1		: real:=0.5;
+	constant CNT3_FLT2		: real:=0.08;
+	
+	constant CNT3_STD0		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT0*(2.0**(CNT5_WIDTH)-16.0)), CNT5_WIDTH);
+	constant CNT3_STD1		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT1*(2.0**(CNT5_WIDTH)-16.0)), CNT5_WIDTH);
+	constant CNT3_STD2		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT2*(2.0**(CNT5_WIDTH)-16.0)), CNT5_WIDTH);
+
+	-------- 2-term --------
+	constant CNT2_FLT0		: real:=0.5434783;
+	constant CNT2_FLT1		: real:=1.0-CNT2_FLT0;
+	
+	constant CNT2_STD0		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT2_FLT0*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT2_STD1		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT2_FLT1*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+
 begin
-    if rising_edge(clk) then
-		if (rst = '1') then
-			ph_in <= (others=>'0');
-			ph_en <= '0';
-		else
-			ph_en <= '1' after CLK_TD;
-			if (ph_en = '1') then
-				ph_in <= ph_in + '1' after CLK_TD;
-			end if;
-		end if;
-	end if;
-end process;
 
-
+-------------------------------------------------------------------------------
+---------------- Clock and Reset Processes ------------------------------------
+-------------------------------------------------------------------------------
 clk_gen: process
 begin
     clk <= '1';
@@ -192,5 +123,111 @@ begin
     rst <= '0';
     wait;
 end process;
+
+-------------------------------------------------------------------------------
+---------------- Phase Increment for CORDIC and WIN components ----------------
+-------------------------------------------------------------------------------
+clk_phase: process(clk) is
+begin
+    if rising_edge(clk) then
+		if (rst = '1') then
+			ph_in <= (others=>'0');
+			ph_en <= '0';
+		else
+			ph_en <= '1' after CLK_TD;
+			if (ph_en = '1') then
+				ph_in <= ph_in + '1' after CLK_TD;
+			end if;
+		end if;
+	end if;
+end process;
+
+-------------------------------------------------------------------------------
+---------------- Window function: 5-term Blackman-Harris ----------------------
+-------------------------------------------------------------------------------
+xWIN5: entity work.bh_win_5term 
+	generic map(
+		PHI_WIDTH	=> PHASE_WIDTH,
+		DAT_WIDTH	=> CNT5_WIDTH
+	)
+	port map (
+		RESET		=> rst,
+		CLK 		=> clk,
+
+		AA0			=> CNT5_STD0,
+		AA1			=> CNT5_STD1,
+		AA2			=> CNT5_STD2,
+		AA3			=> CNT5_STD3,
+		AA4			=> CNT5_STD4,
+		ENABLE		=> ph_en	
+	);
+	
+-------------------------------------------------------------------------------
+---------------- Window function: 4-term Blackman-Harris ----------------------
+-------------------------------------------------------------------------------
+xWIN4: entity work.bh_win_4term 
+	generic map (
+		PHI_WIDTH	=> PHASE_WIDTH,
+		DAT_WIDTH	=> CNT5_WIDTH
+	)
+	port map (
+		RESET  		=> rst,
+		CLK 		=> clk,
+
+		AA0			=> CNT4_STD0,
+		AA1			=> CNT4_STD1,
+		AA2			=> CNT4_STD2,
+		AA3			=> CNT4_STD3,
+		ENABLE		=> ph_en	
+	);
+	
+-------------------------------------------------------------------------------
+---------------- Window function: 3-term Blackman-Harris ----------------------
+-------------------------------------------------------------------------------
+xWIN3: entity work.bh_win_3term 
+	generic map (
+		PHI_WIDTH	=> PHASE_WIDTH,
+		DAT_WIDTH	=> CNT5_WIDTH
+	)
+	port map (
+		RESET  		=> rst,
+		CLK 		=> clk,
+
+		AA0			=> CNT3_STD0,
+		AA1			=> CNT3_STD1,
+		AA2			=> CNT3_STD2,
+		ENABLE		=> ph_en	
+	);
+	
+-------------------------------------------------------------------------------
+---------------- Window function: 2-term Hann & Hamming -----------------------
+-------------------------------------------------------------------------------
+xWIN2: entity work.hamming_win 
+	generic map (
+		PHI_WIDTH	=> PHASE_WIDTH,
+		DAT_WIDTH	=> CNT5_WIDTH
+	)
+	port map (
+		RESET  		=> rst,
+		CLK 		=> clk,
+
+		AA0			=> CNT2_STD0,
+		AA1			=> CNT2_STD1,
+		ENABLE		=> ph_en	
+	);
+
+-- UUT: entity work.cordic_dds
+	-- generic map (
+		-- PHASE_WIDTH		=> PHASE_WIDTH,
+		-- DATA_WIDTH		=> DATA_WIDTH
+	-- )
+	-- port map (
+		-- clk				=> clk,
+		-- reset			=> rst,
+		-- ph_in			=> ph_in,
+		-- ph_en			=> ph_en,
+		-- dt_sin			=> sine,
+		-- dt_cos			=> cosine
+	-- );
 
 end testbench;

@@ -77,11 +77,11 @@ entity bh_win_5term is
 		RESET  		: in  std_logic;	--! Global reset 
 		CLK 		: in  std_logic;	--! System clock 
 
-		CNST0		: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A0
-		CNST1		: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A1
-		CNST2		: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A2
-		CNST3		: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A3
-		CNST4		: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A4
+		AA0			: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A0
+		AA1			: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A1
+		AA2			: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A2
+		AA3			: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A3
+		AA4			: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A4
 
 		ENABLE		: in  std_logic;	--! Input data enable block = NFFT clocks
 		DT_WIN		: out std_logic_vector(DAT_WIDTH-1 downto 0);	--! Output (cos)	
@@ -146,10 +146,10 @@ attribute USE_DSP of dsp_p2 : signal is "YES";
 begin
 
 ---------------- Multiplier ----------------
-mult_a1 <= CNST1 after td when rising_edge(clk);
-mult_a2 <= CNST2 after td when rising_edge(clk);
-mult_a3 <= CNST3 after td when rising_edge(clk);
-mult_a4 <= CNST4 after td when rising_edge(clk);
+mult_a1 <= AA1 after td when rising_edge(clk);
+mult_a2 <= AA2 after td when rising_edge(clk);
+mult_a3 <= AA3 after td when rising_edge(clk);
+mult_a4 <= AA4 after td when rising_edge(clk);
 
 mult_b1 <= cos1 after td when rising_edge(clk);
 mult_b2 <= cos2 after td when rising_edge(clk);
@@ -278,7 +278,7 @@ xMLT4: entity work.int_multNxN_dsp48
 	);	
 	
 ---------------- DSP48E2 1-2 ----------------
-dsp_b0 <= CNST0 after td when rising_edge(clk);
+dsp_b0 <= AA0 after td when rising_edge(clk);
 
 dsp_r1 <= mult_p1(2*DAT_WIDTH-2 downto DAT_WIDTH-2) after td when rising_edge(clk);
 dsp_r2 <= mult_p2(2*DAT_WIDTH-2 downto DAT_WIDTH-2) after td when rising_edge(clk);
@@ -332,7 +332,7 @@ begin
 end process;
 
 ena_zz <= ena_zz(ena_zz'left-1 downto 0) & enable after td when rising_edge(clk);
----------------- Round output data from 25 to 24 bits ----------------
+---------------- Round output data from N+1 to N bits ----------------
 pr_out: process(clk) is
 begin
 	if rising_edge(clk) then
