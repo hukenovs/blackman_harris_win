@@ -18,7 +18,10 @@
 --  > Hamming: (a = 25/46).
 --      a0 = 0.5434783;
 --      a1 = 0.4565217;
---  
+--  or
+--      a0 = 0.5383554;
+--      a1 = 0.4616446;
+--
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 --
@@ -93,7 +96,7 @@ signal dsp_pp			: std_logic_vector(DAT_WIDTH downto 0);
 
 ---------------- DSP48 signals ----------------
 signal vldx				: std_logic;
-signal ena_zz			: std_logic_vector(DAT_WIDTH+5 downto 0);
+signal ena_zz			: std_logic_vector(DAT_WIDTH+7 downto 0);
 
 attribute USE_DSP : string;
 attribute USE_DSP of dsp_pp : signal is "YES";

@@ -136,7 +136,7 @@ signal dsp_p1			: std_logic_vector(DAT_WIDTH+1 downto 0);
 signal dsp_p2			: std_logic_vector(DAT_WIDTH+1 downto 0);
 signal dsp_pp			: std_logic_vector(DAT_WIDTH+1 downto 0);
 signal vldx				: std_logic;
-signal ena_zz			: std_logic_vector(DAT_WIDTH+5 downto 0);
+signal ena_zz			: std_logic_vector(DAT_WIDTH+8 downto 0);
 
 attribute USE_DSP : string;
 attribute USE_DSP of dsp_pp : signal is "YES";

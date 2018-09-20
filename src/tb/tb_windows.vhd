@@ -62,19 +62,42 @@ architecture testbench of tb_windows is
 	signal ph_en			: std_logic;
 
 	-------- Windows constants declaration --------
-	constant CNT5_WIDTH		: integer:=16;
-	-------- 5-term --------
-	constant CNT5_FLT0		: real:=0.3232153788877343;
-	constant CNT5_FLT1		: real:=0.4714921439576260;
-	constant CNT5_FLT2		: real:=0.1755341299601972;
-	constant CNT5_FLT3		: real:=0.0284969901061499;
-	constant CNT5_FLT4		: real:=0.0012613570882927;
+	constant CONST_WIDTH		: integer:=16;
+	-------- 7-term --------
+	constant CNT7_FLT0		: real:=0.271220360585039;
+	constant CNT7_FLT1		: real:=0.433444612327442;
+	constant CNT7_FLT2		: real:=0.218004122892930;
+	constant CNT7_FLT3		: real:=0.065785343295606;
+	constant CNT7_FLT4		: real:=0.010761867305342;
+	constant CNT7_FLT5		: real:=0.000770012710581;
+	constant CNT7_FLT6		: real:=0.000013680883060;
 
-	constant CNT5_STD0		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT0*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
-	constant CNT5_STD1		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT1*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
-	constant CNT5_STD2		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT2*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
-	constant CNT5_STD3		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT3*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
-	constant CNT5_STD4		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT4*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT7_STD0		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT7_FLT0*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
+	constant CNT7_STD1		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT7_FLT1*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
+	constant CNT7_STD2		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT7_FLT2*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
+	constant CNT7_STD3		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT7_FLT3*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
+	constant CNT7_STD4		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT7_FLT4*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
+	constant CNT7_STD5		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT7_FLT5*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
+	constant CNT7_STD6		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT7_FLT6*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
+	
+	-------- 5-term --------
+	-- constant CNT5_FLT0		: real:=0.3232153788877343;
+	-- constant CNT5_FLT1		: real:=0.4714921439576260;
+	-- constant CNT5_FLT2		: real:=0.1755341299601972;
+	-- constant CNT5_FLT3		: real:=0.0284969901061499;
+	-- constant CNT5_FLT4		: real:=0.0012613570882927;
+	-------- Flat-top --------
+	constant CNT5_FLT0		: real:=1.000;
+	constant CNT5_FLT1		: real:=1.930;
+	constant CNT5_FLT2		: real:=1.290;
+	constant CNT5_FLT3		: real:=0.388;
+	constant CNT5_FLT4		: real:=0.030;	
+
+	constant CNT5_STD0		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT0*(2.0**(CONST_WIDTH-2)-1.0)), CONST_WIDTH);
+	constant CNT5_STD1		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT1*(2.0**(CONST_WIDTH-2)-1.0)), CONST_WIDTH);
+	constant CNT5_STD2		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT2*(2.0**(CONST_WIDTH-2)-1.0)), CONST_WIDTH);
+	constant CNT5_STD3		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT3*(2.0**(CONST_WIDTH-2)-1.0)), CONST_WIDTH);
+	constant CNT5_STD4		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT5_FLT4*(2.0**(CONST_WIDTH-2)-1.0)), CONST_WIDTH);
 	
 	-------- 4-term --------
 	constant CNT4_FLT0		: real:= 0.35875;
@@ -82,26 +105,26 @@ architecture testbench of tb_windows is
 	constant CNT4_FLT2		: real:= 0.14128;
 	constant CNT4_FLT3		: real:= 0.01168;
 	
-	constant CNT4_STD0		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT0*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
-	constant CNT4_STD1		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT1*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
-	constant CNT4_STD2		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT2*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
-	constant CNT4_STD3		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT3*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT4_STD0		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT0*(2.0**(CONST_WIDTH)-1.0)), CONST_WIDTH);
+	constant CNT4_STD1		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT1*(2.0**(CONST_WIDTH)-1.0)), CONST_WIDTH);
+	constant CNT4_STD2		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT2*(2.0**(CONST_WIDTH)-1.0)), CONST_WIDTH);
+	constant CNT4_STD3		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT4_FLT3*(2.0**(CONST_WIDTH)-1.0)), CONST_WIDTH);
 	
 	-------- 3-term --------
 	constant CNT3_FLT0		: real:=0.42;
 	constant CNT3_FLT1		: real:=0.5;
 	constant CNT3_FLT2		: real:=0.08;
 	
-	constant CNT3_STD0		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT0*(2.0**(CNT5_WIDTH)-16.0)), CNT5_WIDTH);
-	constant CNT3_STD1		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT1*(2.0**(CNT5_WIDTH)-16.0)), CNT5_WIDTH);
-	constant CNT3_STD2		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT2*(2.0**(CNT5_WIDTH)-16.0)), CNT5_WIDTH);
+	constant CNT3_STD0		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT0*(2.0**(CONST_WIDTH)-16.0)), CONST_WIDTH);
+	constant CNT3_STD1		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT1*(2.0**(CONST_WIDTH)-16.0)), CONST_WIDTH);
+	constant CNT3_STD2		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT3_FLT2*(2.0**(CONST_WIDTH)-16.0)), CONST_WIDTH);
 
 	-------- 2-term --------
 	constant CNT2_FLT0		: real:=0.5434783;
 	constant CNT2_FLT1		: real:=1.0-CNT2_FLT0;
 	
-	constant CNT2_STD0		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT2_FLT0*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
-	constant CNT2_STD1		: std_logic_vector(CNT5_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT2_FLT1*(2.0**(CNT5_WIDTH)-1.0)), CNT5_WIDTH);
+	constant CNT2_STD0		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT2_FLT0*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
+	constant CNT2_STD1		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT2_FLT1*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
 
 begin
 
@@ -143,12 +166,34 @@ begin
 end process;
 
 -------------------------------------------------------------------------------
+---------------- Window function: 7-term Blackman-Harris ----------------------
+-------------------------------------------------------------------------------
+xWIN7: entity work.bh_win_7term 
+	generic map(
+		PHI_WIDTH	=> PHASE_WIDTH,
+		DAT_WIDTH	=> CONST_WIDTH
+	)
+	port map (
+		RESET		=> rst,
+		CLK 		=> clk,
+
+		AA0			=> CNT7_STD0,
+		AA1			=> CNT7_STD1,
+		AA2			=> CNT7_STD2,
+		AA3			=> CNT7_STD3,
+		AA4			=> CNT7_STD4,
+		AA5			=> CNT7_STD5,
+		AA6			=> CNT7_STD6,
+		ENABLE		=> ph_en	
+	);
+
+-------------------------------------------------------------------------------
 ---------------- Window function: 5-term Blackman-Harris ----------------------
 -------------------------------------------------------------------------------
 xWIN5: entity work.bh_win_5term 
 	generic map(
 		PHI_WIDTH	=> PHASE_WIDTH,
-		DAT_WIDTH	=> CNT5_WIDTH
+		DAT_WIDTH	=> CONST_WIDTH
 	)
 	port map (
 		RESET		=> rst,
@@ -168,7 +213,7 @@ xWIN5: entity work.bh_win_5term
 xWIN4: entity work.bh_win_4term 
 	generic map (
 		PHI_WIDTH	=> PHASE_WIDTH,
-		DAT_WIDTH	=> CNT5_WIDTH
+		DAT_WIDTH	=> CONST_WIDTH
 	)
 	port map (
 		RESET  		=> rst,
@@ -187,7 +232,7 @@ xWIN4: entity work.bh_win_4term
 xWIN3: entity work.bh_win_3term 
 	generic map (
 		PHI_WIDTH	=> PHASE_WIDTH,
-		DAT_WIDTH	=> CNT5_WIDTH
+		DAT_WIDTH	=> CONST_WIDTH
 	)
 	port map (
 		RESET  		=> rst,
@@ -205,7 +250,7 @@ xWIN3: entity work.bh_win_3term
 xWIN2: entity work.hamming_win 
 	generic map (
 		PHI_WIDTH	=> PHASE_WIDTH,
-		DAT_WIDTH	=> CNT5_WIDTH
+		DAT_WIDTH	=> CONST_WIDTH
 	)
 	port map (
 		RESET  		=> rst,

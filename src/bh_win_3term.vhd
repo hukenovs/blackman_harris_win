@@ -105,7 +105,7 @@ signal dsp_r2			: std_logic_vector(DAT_WIDTH downto 0);
 ---------------- DSP48 signals ----------------
 signal dsp_pp			: std_logic_vector(DAT_WIDTH+1 downto 0);
 signal vldx				: std_logic;
-signal ena_zz			: std_logic_vector(DAT_WIDTH+4 downto 0);
+signal ena_zz			: std_logic_vector(DAT_WIDTH+7 downto 0);
 
 attribute USE_DSP : string;
 attribute USE_DSP of dsp_pp : signal is "YES";
