@@ -64,12 +64,12 @@ entity taylor_sincos is
         TAY_ORDER		: integer range 1 to 2:=1 -- Taylor series order 1 or 2
 	);
     port (
-        rst				: in std_logic; --! Global reset
-		clk				: in std_logic; --! Rising edge DSP clock
-
-        phi_ena			: in std_logic; --! Phase valid signal
-        out_sin			: out std_logic_vector(DATA_WIDTH-1 downto 0); -- Sine output
-        out_cos			: out std_logic_vector(DATA_WIDTH-1 downto 0) -- Cosine output
+		RST				: in std_logic; --! Global reset
+		CLK				: in std_logic; --! Rising edge DSP clock
+		
+		PHI_ENA			: in std_logic; --! Phase valid signal
+		OUT_SIN			: out std_logic_vector(DATA_WIDTH-1 downto 0); -- Sine output
+		OUT_COS			: out std_logic_vector(DATA_WIDTH-1 downto 0) -- Cosine output
 	);
 end entity;
 
@@ -89,7 +89,7 @@ architecture taylor_sincos of taylor_sincos is
 		variable im_int : integer:=0;
 	begin
 		for ii in 0 to ROM_DEPTH-1 loop
-			pi_new := (real(ii) * MATH_PI)/real(ROM_DEPTH);
+			pi_new := (real(ii) * MATH_PI) / (2.0 * real(ROM_DEPTH));
 			
 			re_int := INTEGER((2.0**(DATA_WIDTH-1)-1.0) * cos(pi_new));	
 			im_int := INTEGER((2.0**(DATA_WIDTH-1)-1.0) * sin(pi_new));
@@ -101,15 +101,15 @@ architecture taylor_sincos of taylor_sincos is
 		return sc_int;		
 	end rom_calculate;	
 	
---	constant ROM_ARRAY : std_array_RxN := rom_calculate(LUT_SIZE);	
-	signal ROM_ARRAY : std_array_RxN := rom_calculate(LUT_SIZE);	
+	constant ROM_ARRAY : std_array_RxN := rom_calculate(LUT_SIZE);
 	
+	---- Phase counter and quadrant ----
 	signal half			: std_logic;
 	signal cnt			: std_logic_vector(PHASE_WIDTH-1 downto 0);
 	signal addr 		: std_logic_vector(LUT_SIZE-1 downto 0);	
 	signal quadrant 	: std_logic_vector(1 downto 0);	
 	
-    -- Output registers.
+    ---- Output mem & registers ----
     signal dpo			: std_logic_vector(2*DATA_WIDTH-1 downto 0);
     signal mem_sin		: std_logic_vector(DATA_WIDTH-1 downto 0);
     signal mem_cos		: std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -127,7 +127,7 @@ architecture taylor_sincos of taylor_sincos is
 	constant RAMB_TYPE 	: string:=calc_string(LUT_SIZE);
 	
     attribute rom_style: string;
-    attribute rom_style of ROM_ARRAY: signal is RAMB_TYPE;
+    attribute rom_style of dpo : signal is RAMB_TYPE;
 
 begin
 	---- Select quadrant ----
@@ -168,8 +168,10 @@ begin
 	end generate;
 	
 	dpo <= ROM_ARRAY(conv_integer(UNSIGNED(addr))) when rising_edge(clk);
-	mem_sin <= dpo(2*DATA_WIDTH-1 downto 1*0) when rising_edge(clk);
-	mem_cos <= dpo(1*DATA_WIDTH-1 downto 0*0) when rising_edge(clk);
+	mem_sin <= dpo(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) when rising_edge(clk);
+	mem_cos <= dpo(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) when rising_edge(clk);
 	
+	out_sin	<= mem_sin;
+	out_cos	<= mem_cos;
 
 end architecture;

@@ -275,4 +275,20 @@ xWIN2: entity work.hamming_win
 		-- dt_cos			=> cosine
 	-- );
 
+-------------------------------------------------------------------------------
+---------------- Taylor generator for sine and cosine -------------------------
+-------------------------------------------------------------------------------
+xTAY: entity work.taylor_sincos 
+	generic map (
+		TAY_ORDER	=> 1,
+		LUT_SIZE	=> 10,
+		PHASE_WIDTH	=> 14,
+		DATA_WIDTH	=> 16
+	)
+	port map (
+		RST  		=> rst,
+		CLK 		=> clk,
+		PHI_ENA		=> ph_en	
+	);
+
 end testbench;
