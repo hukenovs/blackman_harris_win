@@ -15,6 +15,13 @@
 --   Phase values is signed integer type [PHASE_WIDTH : 0]
 --   Look-up table for sine and cosine has LUT_SIZE parameter of ROM depth.    
 --
+--   Parameters:
+--
+--   DATA_WIDTH   - Number of bits in sin/cos
+--   PHASE_WIDT   - Number of bits in phase accumulator	
+--   LUT_SIZE     - ROM depth for sin/cos 
+--   TAY_ORDER	  - Taylor series order: 1 or 2	
+--
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 --
@@ -52,7 +59,7 @@ use ieee.math_real.all;
 entity taylor_sincos is
     generic (
         DATA_WIDTH		: integer:= 18; --! Number of bits in sin/cos 
-        PHASE_WIDTH		: integer:= 16; --! Number of bits in phase input.
+        PHASE_WIDTH		: integer:= 12; --! Number of bits in phase accumulator
         LUT_SIZE		: integer:= 10; --! ROM depth for sin/cos (must be less than PHASE_WiDTH)
         TAY_ORDER		: integer range 1 to 2:=1 -- Taylor series order 1 or 2
 	);
@@ -61,7 +68,6 @@ entity taylor_sincos is
 		clk				: in std_logic; --! Rising edge DSP clock
 
         phi_ena			: in std_logic; --! Phase valid signal
-
         out_sin			: out std_logic_vector(DATA_WIDTH-1 downto 0); -- Sine output
         out_cos			: out std_logic_vector(DATA_WIDTH-1 downto 0) -- Cosine output
 	);
@@ -83,19 +89,20 @@ architecture taylor_sincos of taylor_sincos is
 		variable im_int : integer:=0;
 	begin
 		for ii in 0 to ROM_DEPTH-1 loop
-			pi_new := (real(ii) * MATH_PI)/ROM_DEPTH);
+			pi_new := (real(ii) * MATH_PI)/real(ROM_DEPTH);
 			
-			re_int := INTEGER((2.0**(DATA_WIDTH-1)-1) * COS(pi_new));	
-			im_int := INTEGER((2.0**(DATA_WIDTH-1)-1) * SIN(pi_new));
+			re_int := INTEGER((2.0**(DATA_WIDTH-1)-1.0) * cos(pi_new));	
+			im_int := INTEGER((2.0**(DATA_WIDTH-1)-1.0) * sin(pi_new));
 
-			sc_int(ii)(2*DATA_WIDTH-1 downto 1*0) := STD_LOGIC_VECTOR(CONV_SIGNED(im_int, DATA_WIDTH));
-			sc_int(ii)(1*DATA_WIDTH-1 downto 0*0) := STD_LOGIC_VECTOR(CONV_SIGNED(re_int, DATA_WIDTH));	
+			sc_int(ii)(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) := STD_LOGIC_VECTOR(CONV_SIGNED(im_int, DATA_WIDTH));
+			sc_int(ii)(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) := STD_LOGIC_VECTOR(CONV_SIGNED(re_int, DATA_WIDTH));	
 		end loop;
 		
 		return sc_int;		
 	end rom_calculate;	
 	
-	constant ROM_ARRAY : std_array_32xN:= rom_calculate(LUT_SIZE);	
+--	constant ROM_ARRAY : std_array_RxN := rom_calculate(LUT_SIZE);	
+	signal ROM_ARRAY : std_array_RxN := rom_calculate(LUT_SIZE);	
 	
 	signal half			: std_logic;
 	signal cnt			: std_logic_vector(PHASE_WIDTH-1 downto 0);
@@ -161,8 +168,8 @@ begin
 	end generate;
 	
 	dpo <= ROM_ARRAY(conv_integer(UNSIGNED(addr))) when rising_edge(clk);
-	mem_sin <= dpo(2*DATA_WIDTH-1 downto 1*0) after td when rising_edge(clk);
-	mem_cos <= dpo(1*DATA_WIDTH-1 downto 0*0) after td when rising_edge(clk);
+	mem_sin <= dpo(2*DATA_WIDTH-1 downto 1*0) when rising_edge(clk);
+	mem_cos <= dpo(1*DATA_WIDTH-1 downto 0*0) when rising_edge(clk);
 	
 
 end architecture;
