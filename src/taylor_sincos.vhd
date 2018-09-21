@@ -13,7 +13,7 @@
 --   Also you can set the order of Taylor series: 1 or 2.
 --   Data values is signed integer type [DATA_WIDTH-1 : 0]
 --   Phase values is signed integer type [PHASE_WIDTH : 0]
---   Look-up table for sine and cosine has LUT_SIZE parameter of ROM depth.    
+--   Look-up table for sine and cosine has LUT_SIZE parameter of ROM depth.
 --
 --   Parameters:
 --
@@ -61,7 +61,8 @@ entity taylor_sincos is
         DATA_WIDTH		: integer:= 18; --! Number of bits in sin/cos 
         PHASE_WIDTH		: integer:= 12; --! Number of bits in phase accumulator
         LUT_SIZE		: integer:= 10; --! ROM depth for sin/cos (must be less than PHASE_WiDTH)
-        TAY_ORDER		: integer range 1 to 2:=1 -- Taylor series order 1 or 2
+        TAY_ORDER		: integer range 1 to 2:=1; -- Taylor series order 1 or 2
+        XSERIES			: string:="7SERIES" --! for 6/7 series: "7SERIES"; for ULTRASCALE: "ULTRA";
 	);
     port (
 		RST				: in std_logic; --! Global reset
@@ -160,17 +161,59 @@ begin
 	end generate;		
 	---- Phase width more than lut size ----
 	xGEN_MORE: if ((PHASE_WIDTH - LUT_SIZE) > 2) generate		
-		signal acnt	: std_logic_vector(PHASE_WIDTH-LUT_SIZE-1 downto 0);
+		signal acnt	: std_logic_vector(PHASE_WIDTH-LUT_SIZE-3 downto 0);
+	
+		signal tay_dat	: std_logic_vector(2*DATA_WIDTH-1 downto 0);
 	
 	begin
 		addr <= cnt(PHASE_WIDTH-3 downto PHASE_WIDTH-LUT_SIZE-2);-- when rising_edge(clk);
 		acnt <= cnt(PHASE_WIDTH-3-LUT_SIZE downto 0);-- when rising_edge(clk);
+	
+		---- 1st order Taylor scheme ----
+		xORD1: if (TAY_ORDER = 1) generate
+			xTAY1: entity work.taylor_1order
+				generic map (
+					XSERIES  	=> XSERIES,
+					CNT_WIDTH	=> PHASE_WIDTH-LUT_SIZE-3
+				)
+				port map (
+					rom_ww		=> dpo,
+
+					dsp_ww		=> tay_dat,
+					int_cnt		=> acnt,
+					
+					clk 		=> clk,
+					rst  		=> rst
+				);
+		end generate;
+		
+		-- ---- 2nd order Taylor scheme ----
+		-- xORD2: if (TAY_ORDER = 2) generate
+			-- X_TAYLOR_COE: entity work.fp23_cnt2flt_m1
+				-- generic map (
+					-- XSERIES  	=> XSERIES,
+					-- ii			=> PHASE_WIDTH-LUT_SIZE-3
+				-- )
+				-- port map (
+					-- rom_ww		=> dpo,
+					-- rom_en		=> ww_enaz(3),
+					   
+					-- dsp_ww		=> tay_dat,
+					-- int_cnt		=> acnt,
+					
+					-- clk			=> clk,
+					-- rst			=> rst
+				-- );
+		-- end generate;
+	
+	
 	end generate;
 	
 	dpo <= ROM_ARRAY(conv_integer(UNSIGNED(addr))) when rising_edge(clk);
 	mem_sin <= dpo(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) when rising_edge(clk);
 	mem_cos <= dpo(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) when rising_edge(clk);
-	
+
+	---- Output data ----
 	out_sin	<= mem_sin;
 	out_cos	<= mem_cos;
 
