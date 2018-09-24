@@ -18,8 +18,8 @@
 --   Parameters:
 --
 --   DATA_WIDTH   - Number of bits in sin/cos
---   PHASE_WIDT   - Number of bits in phase accumulator	
---   LUT_SIZE     - ROM depth for sin/cos 
+--   PHASE_WIDT   - Number of bits in phase accumulator
+--   LUT_SIZE     - ROM depth for sin/cos (common depth is from 8 to 10)
 --   TAY_ORDER	  - Taylor series order: 1 or 2	
 --
 -------------------------------------------------------------------------------
