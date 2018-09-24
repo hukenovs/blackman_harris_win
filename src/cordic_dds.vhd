@@ -82,17 +82,17 @@ use ieee.math_real.all;
 
 entity cordic_dds is
 	generic (
-		PHASE_WIDTH		: integer := 16;-- Phase width: sets period of signal
-		DATA_WIDTH		: integer := 16 -- Output width: sets magnitude of signal
+		PHASE_WIDTH    : integer := 16;-- Phase width: sets period of signal
+		DATA_WIDTH     : integer := 16 -- Output width: sets magnitude of signal
 	);
 	port (
-		CLK             : in  std_logic; --! Clock source
-		RESET           : in  std_logic; --! Positive reset: '1' - reset, '0' - calculate
-		PH_IN           : in  std_logic_vector(PHASE_WIDTH-1 downto 0); --! Input phase increment
-		PH_EN           : in  std_logic; --! Input phase enable
-		DT_SIN          : out std_logic_vector(DATA_WIDTH-1 downto 0); --! Output sine value
-		DT_COS          : out std_logic_vector(DATA_WIDTH-1 downto 0); --! Output cosine value
-		DT_VAL          : out std_logic --! Output data valid
+		CLK           : in  std_logic; --! Clock source
+		RESET         : in  std_logic; --! Positive reset: '1' - reset, '0' - calculate
+		PH_IN         : in  std_logic_vector(PHASE_WIDTH-1 downto 0); --! Input phase increment
+		PH_EN         : in  std_logic; --! Input phase enable
+		DT_SIN        : out std_logic_vector(DATA_WIDTH-1 downto 0); --! Output sine value
+		DT_COS        : out std_logic_vector(DATA_WIDTH-1 downto 0); --! Output cosine value
+		DT_VAL        : out std_logic --! Output data valid
 	);
 end cordic_dds;
 
@@ -168,17 +168,17 @@ constant ROM_NEW	: rom_array := CALC_ATAN;
 type dat_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+2 downto 0);
 type phi_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
 
-signal sigX				: dat_array := (others => (others => '0'));
-signal sigY				: dat_array := (others => (others => '0'));
-signal sigZ 			: phi_array := (others => (others => '0'));
+signal sigX             : dat_array := (others => (others => '0'));
+signal sigY             : dat_array := (others => (others => '0'));
+signal sigZ             : phi_array := (others => (others => '0'));
 
-signal init_x			: std_logic_vector(DATA_WIDTH+2 downto 0);
-signal init_y			: std_logic_vector(DATA_WIDTH+2 downto 0);
-signal init_t			: std_logic_vector(PHASE_WIDTH-1 downto 0);
-signal init_z			: std_logic_vector(DATA_WIDTH-1 downto 0);
+signal init_x           : std_logic_vector(DATA_WIDTH+2 downto 0);
+signal init_y           : std_logic_vector(DATA_WIDTH+2 downto 0);
+signal init_t           : std_logic_vector(PHASE_WIDTH-1 downto 0);
+signal init_z           : std_logic_vector(DATA_WIDTH-1 downto 0);
 
-signal quadrant			: std_logic_vector(1 downto 0);
-signal dt_vld			: std_logic_vector(DATA_WIDTH-1 downto 0);
+signal quadrant         : std_logic_vector(1 downto 0);
+signal dt_vld           : std_logic_vector(DATA_WIDTH-1 downto 0);
 
 begin
 
@@ -257,13 +257,13 @@ pr_crd: process(clk, reset)
 begin
     if (reset = '1') then
         for ii in 0 to (DATA_WIDTH-1) loop
-            sigX(ii) <= (others => '0');
-            sigY(ii) <= (others => '0');
+			sigX(ii) <= (others => '0');
+			sigY(ii) <= (others => '0');
 			sigZ(ii) <= (others => '0');
         end loop;
     elsif rising_edge(clk) then
-        sigX(0) <= init_x;
-        sigY(0) <= init_y; 
+		sigX(0) <= init_x;
+		sigY(0) <= init_y; 
 		sigZ(0) <= init_z;
 		---- calculate sine & cosine ----
         xl: for ii in 0 to DATA_WIDTH-2 loop
