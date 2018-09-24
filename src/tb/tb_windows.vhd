@@ -126,6 +126,30 @@ architecture testbench of tb_windows is
 	constant CNT2_STD0		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT2_FLT0*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
 	constant CNT2_STD1		: std_logic_vector(CONST_WIDTH-1 downto 0):=conv_std_logic_vector(integer(CNT2_FLT1*(2.0**(CONST_WIDTH-1)-1.0)), CONST_WIDTH);
 
+	signal idl_cos			: std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal idl_sin			: std_logic_vector(DATA_WIDTH-1 downto 0);
+	
+	signal tst_cos			: std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal tst_sin			: std_logic_vector(DATA_WIDTH-1 downto 0);
+	
+	type std_array_RxN is array (15 downto 0) of std_logic_vector(DATA_WIDTH-1 downto 0); 
+	
+	signal del_cos			: std_array_RxN;
+	signal del_sin			: std_array_RxN;
+	
+	signal res_cos			: std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal res_sin			: std_logic_vector(DATA_WIDTH-1 downto 0);
+	
+	signal xor_cos			: std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal xor_sin			: std_logic_vector(DATA_WIDTH-1 downto 0);	
+	
+	signal abs_cos			: std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal abs_sin			: std_logic_vector(DATA_WIDTH-1 downto 0);	
+	
+	constant LUT_SIZE		: integer:=10;
+	constant PHI_WIDTH		: integer:=14;
+
+	
 begin
 
 -------------------------------------------------------------------------------
@@ -168,98 +192,98 @@ end process;
 -------------------------------------------------------------------------------
 ---------------- Window function: 7-term Blackman-Harris ----------------------
 -------------------------------------------------------------------------------
-xWIN7: entity work.bh_win_7term 
-	generic map(
-		PHI_WIDTH	=> PHASE_WIDTH,
-		DAT_WIDTH	=> CONST_WIDTH
-	)
-	port map (
-		RESET		=> rst,
-		CLK 		=> clk,
+-- xWIN7: entity work.bh_win_7term 
+	-- generic map(
+		-- PHI_WIDTH	=> PHASE_WIDTH,
+		-- DAT_WIDTH	=> CONST_WIDTH
+	-- )
+	-- port map (
+		-- RESET		=> rst,
+		-- CLK 		=> clk,
 
-		AA0			=> CNT7_STD0,
-		AA1			=> CNT7_STD1,
-		AA2			=> CNT7_STD2,
-		AA3			=> CNT7_STD3,
-		AA4			=> CNT7_STD4,
-		AA5			=> CNT7_STD5,
-		AA6			=> CNT7_STD6,
-		ENABLE		=> ph_en	
-	);
+		-- AA0			=> CNT7_STD0,
+		-- AA1			=> CNT7_STD1,
+		-- AA2			=> CNT7_STD2,
+		-- AA3			=> CNT7_STD3,
+		-- AA4			=> CNT7_STD4,
+		-- AA5			=> CNT7_STD5,
+		-- AA6			=> CNT7_STD6,
+		-- ENABLE		=> ph_en	
+	-- );
 
 -------------------------------------------------------------------------------
 ---------------- Window function: 5-term Blackman-Harris ----------------------
 -------------------------------------------------------------------------------
-xWIN5: entity work.bh_win_5term 
-	generic map(
-		PHI_WIDTH	=> PHASE_WIDTH,
-		DAT_WIDTH	=> CONST_WIDTH
-	)
-	port map (
-		RESET		=> rst,
-		CLK 		=> clk,
+-- xWIN5: entity work.bh_win_5term 
+	-- generic map(
+		-- PHI_WIDTH	=> PHASE_WIDTH,
+		-- DAT_WIDTH	=> CONST_WIDTH
+	-- )
+	-- port map (
+		-- RESET		=> rst,
+		-- CLK 		=> clk,
 
-		AA0			=> CNT5_STD0,
-		AA1			=> CNT5_STD1,
-		AA2			=> CNT5_STD2,
-		AA3			=> CNT5_STD3,
-		AA4			=> CNT5_STD4,
-		ENABLE		=> ph_en	
-	);
+		-- AA0			=> CNT5_STD0,
+		-- AA1			=> CNT5_STD1,
+		-- AA2			=> CNT5_STD2,
+		-- AA3			=> CNT5_STD3,
+		-- AA4			=> CNT5_STD4,
+		-- ENABLE		=> ph_en	
+	-- );
 	
 -------------------------------------------------------------------------------
 ---------------- Window function: 4-term Blackman-Harris ----------------------
 -------------------------------------------------------------------------------
-xWIN4: entity work.bh_win_4term 
-	generic map (
-		PHI_WIDTH	=> PHASE_WIDTH,
-		DAT_WIDTH	=> CONST_WIDTH
-	)
-	port map (
-		RESET  		=> rst,
-		CLK 		=> clk,
+-- xWIN4: entity work.bh_win_4term 
+	-- generic map (
+		-- PHI_WIDTH	=> PHASE_WIDTH,
+		-- DAT_WIDTH	=> CONST_WIDTH
+	-- )
+	-- port map (
+		-- RESET  		=> rst,
+		-- CLK 		=> clk,
 
-		AA0			=> CNT4_STD0,
-		AA1			=> CNT4_STD1,
-		AA2			=> CNT4_STD2,
-		AA3			=> CNT4_STD3,
-		ENABLE		=> ph_en	
-	);
+		-- AA0			=> CNT4_STD0,
+		-- AA1			=> CNT4_STD1,
+		-- AA2			=> CNT4_STD2,
+		-- AA3			=> CNT4_STD3,
+		-- ENABLE		=> ph_en	
+	-- );
 	
 -------------------------------------------------------------------------------
 ---------------- Window function: 3-term Blackman-Harris ----------------------
 -------------------------------------------------------------------------------
-xWIN3: entity work.bh_win_3term 
-	generic map (
-		PHI_WIDTH	=> PHASE_WIDTH,
-		DAT_WIDTH	=> CONST_WIDTH
-	)
-	port map (
-		RESET  		=> rst,
-		CLK 		=> clk,
+-- xWIN3: entity work.bh_win_3term 
+	-- generic map (
+		-- PHI_WIDTH	=> PHASE_WIDTH,
+		-- DAT_WIDTH	=> CONST_WIDTH
+	-- )
+	-- port map (
+		-- RESET  		=> rst,
+		-- CLK 		=> clk,
 
-		AA0			=> CNT3_STD0,
-		AA1			=> CNT3_STD1,
-		AA2			=> CNT3_STD2,
-		ENABLE		=> ph_en	
-	);
+		-- AA0			=> CNT3_STD0,
+		-- AA1			=> CNT3_STD1,
+		-- AA2			=> CNT3_STD2,
+		-- ENABLE		=> ph_en	
+	-- );
 	
 -------------------------------------------------------------------------------
 ---------------- Window function: 2-term Hann & Hamming -----------------------
 -------------------------------------------------------------------------------
-xWIN2: entity work.hamming_win 
-	generic map (
-		PHI_WIDTH	=> PHASE_WIDTH,
-		DAT_WIDTH	=> CONST_WIDTH
-	)
-	port map (
-		RESET  		=> rst,
-		CLK 		=> clk,
+-- xWIN2: entity work.hamming_win 
+	-- generic map (
+		-- PHI_WIDTH	=> PHASE_WIDTH,
+		-- DAT_WIDTH	=> CONST_WIDTH
+	-- )
+	-- port map (
+		-- RESET  		=> rst,
+		-- CLK 		=> clk,
 
-		AA0			=> CNT2_STD0,
-		AA1			=> CNT2_STD1,
-		ENABLE		=> ph_en	
-	);
+		-- AA0			=> CNT2_STD0,
+		-- AA1			=> CNT2_STD1,
+		-- ENABLE		=> ph_en	
+	-- );
 
 -- UUT: entity work.cordic_dds
 	-- generic map (
@@ -281,14 +305,49 @@ xWIN2: entity work.hamming_win
 xTAY: entity work.taylor_sincos 
 	generic map (
 		TAY_ORDER	=> 1,
-		LUT_SIZE	=> 10,
-		PHASE_WIDTH	=> 14,
-		DATA_WIDTH	=> 16
+		LUT_SIZE	=> LUT_SIZE,
+		PHASE_WIDTH	=> PHI_WIDTH,
+		DATA_WIDTH	=> DATA_WIDTH
 	)
 	port map (
 		RST  		=> rst,
 		CLK 		=> clk,
-		PHI_ENA		=> ph_en	
+		PHI_ENA		=> ph_en,
+		OUT_SIN		=> tst_sin,
+		OUT_COS		=> tst_cos		
 	);
+
+xCOM: entity work.taylor_sincos 
+	generic map (
+		TAY_ORDER	=> 1,
+		LUT_SIZE	=> PHI_WIDTH-2,
+		PHASE_WIDTH	=> PHI_WIDTH,
+		DATA_WIDTH	=> DATA_WIDTH
+	)
+	port map (
+		RST  		=> rst,
+		CLK 		=> clk,
+		PHI_ENA		=> ph_en,
+		OUT_SIN		=> idl_sin,
+		OUT_COS		=> idl_cos
+	);
+	
+del_cos <= del_cos(del_cos'left-1 downto 0) & idl_sin when rising_edge(clk) and ph_en = '1';	
+del_sin <= del_sin(del_sin'left-1 downto 0) & idl_cos when rising_edge(clk) and ph_en = '1';	
+
+res_cos <= del_cos(3) when rst = '0' else (others=>'0');
+res_sin <= del_sin(3) when rst = '0' else (others=>'0');
+	
+xor_cos <= res_cos - tst_cos;
+xor_sin <= res_sin - tst_sin;
+
+xFOR: for ii in 0 to DATA_WIDTH-2 generate
+	abs_cos(ii) <= xor_cos(ii) xor xor_cos(DATA_WIDTH-1);
+	abs_sin(ii) <= xor_sin(ii) xor xor_sin(DATA_WIDTH-1);
+end generate;
+
+abs_cos(DATA_WIDTH-1) <= '0';
+abs_sin(DATA_WIDTH-1) <= '0';
+
 
 end testbench;

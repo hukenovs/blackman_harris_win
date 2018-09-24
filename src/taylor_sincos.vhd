@@ -161,10 +161,9 @@ begin
 	end generate;		
 	---- Phase width more than lut size ----
 	xGEN_MORE: if ((PHASE_WIDTH - LUT_SIZE) > 2) generate		
-		signal acnt	: std_logic_vector(PHASE_WIDTH-LUT_SIZE-3 downto 0);
-	
-		signal tay_dat	: std_logic_vector(2*DATA_WIDTH-1 downto 0);
-	
+		signal acnt     : std_logic_vector(PHASE_WIDTH-LUT_SIZE-3 downto 0);
+		signal tay_dat  : std_logic_vector(2*DATA_WIDTH-1 downto 0);
+
 	begin
 		addr <= cnt(PHASE_WIDTH-3 downto PHASE_WIDTH-LUT_SIZE-2);-- when rising_edge(clk);
 		acnt <= cnt(PHASE_WIDTH-3-LUT_SIZE downto 0);-- when rising_edge(clk);
@@ -175,6 +174,7 @@ begin
 				generic map (
 					DATA_WIDTH  => DATA_WIDTH,
 					USE_MLT     => FALSE,
+					VAL_SHIFT   => LUT_SIZE,
 					XSERIES     => XSERIES,
 					STAGE       => PHASE_WIDTH-LUT_SIZE-3
 				)
@@ -207,16 +207,25 @@ begin
 					-- rst			=> rst
 				-- );
 		-- end generate;
-	
-	
+		mem_sin <= tay_dat(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) when rising_edge(clk);	
+		mem_cos <= tay_dat(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) when rising_edge(clk);
+		
 	end generate;
 	
+	xGEN_OUT: if ((PHASE_WIDTH - LUT_SIZE) <= 2) generate
+		mem_sin <= dpo(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) when rising_edge(clk);
+		mem_cos <= dpo(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) when rising_edge(clk);
+	end generate;	
+	
+	
+	
 	dpo <= ROM_ARRAY(conv_integer(UNSIGNED(addr))) when rising_edge(clk);
-	mem_sin <= dpo(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) when rising_edge(clk);
-	mem_cos <= dpo(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) when rising_edge(clk);
 
 	---- Output data ----
 	out_sin	<= mem_sin;
-	out_cos	<= mem_cos;
+	out_cos	<= mem_cos;		
+	
+
+	
 
 end architecture;
