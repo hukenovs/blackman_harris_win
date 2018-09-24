@@ -171,16 +171,18 @@ begin
 	
 		---- 1st order Taylor scheme ----
 		xORD1: if (TAY_ORDER = 1) generate
-			xTAY1: entity work.taylor_1order
+			xTAY1: entity work.tay1_order
 				generic map (
-					XSERIES  	=> XSERIES,
-					CNT_WIDTH	=> PHASE_WIDTH-LUT_SIZE-3
+					DATA_WIDTH  => DATA_WIDTH,
+					USE_MLT     => FALSE,
+					XSERIES     => XSERIES,
+					STAGE       => PHASE_WIDTH-LUT_SIZE-3
 				)
 				port map (
-					rom_ww		=> dpo,
-
-					dsp_ww		=> tay_dat,
-					int_cnt		=> acnt,
+					rom_dat		=> dpo,
+					rom_cnt		=> acnt,
+					
+					dsp_dat		=> tay_dat,
 					
 					clk 		=> clk,
 					rst  		=> rst
