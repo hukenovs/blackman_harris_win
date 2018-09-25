@@ -22,6 +22,12 @@
 --   LUT_SIZE     - ROM depth for sin/cos (common depth is from 8 to 10)
 --   TAY_ORDER	  - Taylor series order: 1 or 2	
 --
+--   Total delay datapath:
+--     IF (PHASE_WIDTH - LUT_SIZE < 2) THEN delay = 5 taps,
+--     ELSE
+--       IF (DATA_WIDTH < 19) THEN delay = 8 taps.
+--       else delay = 11 taps.
+--
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 --
@@ -60,7 +66,7 @@ entity taylor_sincos is
     generic (
         DATA_WIDTH      : integer:= 24; --! Number of bits in sin/cos 
         PHASE_WIDTH     : integer:= 14; --! Number of bits in phase accumulator
-        LUT_SIZE        : integer:= 10; --! ROM depth for sin/cos (must be less than PHASE_WiDTH)
+        LUT_SIZE        : integer:= 10; --! ROM depth for sin/cos (must be less than PHASE_WIDTH)
         TAY_ORDER       : integer range 1 to 2:=1; -- Taylor series order 1 or 2
         XSERIES         : string:="7SERIES" --! for 6/7 series: "7SERIES"; for ULTRASCALE: "ULTRA";
 	);
