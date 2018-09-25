@@ -8,22 +8,19 @@
 --
 -- Description : Sine & Cosine generator by using Taylor function: 1 order.
 --
--- 			Data decoder for sine / cosine
--- 			Main algorithm for calculation FFT coefficients	by Taylor scheme.
---
---			Wcos(x) = cos(x) + sin(x) * (pi * cnt(x) / NFFT); *
---			Wsin(x) = sin(x) - cos(x) * (pi * cnt(x) / NFFT);
---
---			* where	pi is 0x6487ED / Iteration
---
---
---				x"6488" is round(M_PI * 2^13) = 25734.
---
---				MPX = (M_PI * CNT) is always has [24:0] bit field!
---
---			RAMB (Width * Depth) is constant value and equals 32x1K,
--- 
---			Taylor alrogithm takes 3 Mults and 2 Adders in INT format. 
+--   Data decoder for sine / cosine
+--   Main algorithm for calculation FFT coefficients	by Taylor scheme.
+--   
+--   Wcos(x) = cos(x) + sin(x) * (pi * cnt(x) / NFFT); *
+--   Wsin(x) = sin(x) - cos(x) * (pi * cnt(x) / NFFT);
+--   
+--   * where	pi is 0x6487ED / Iteration
+--   
+--   MPX = (M_PI * CNT) is always has [24:0] bit field!
+--   
+--   RAMB (Width * Depth) is constant value and equals 2Nx1K,
+--   
+--   Taylor alrogithm takes 3 Mults and 2 Adders in INT format. 
 --
 --  List of parameters:
 --    DATA_WIDTH  - sin/cos width (Magnitude = 2**Amag)		
@@ -118,9 +115,6 @@ signal cnt_exp          : std_logic_vector(15 downto 00);
 signal cos_rnd          : std_logic_vector(DATA_WIDTH-1 downto 00);
 signal sin_rnd          : std_logic_vector(DATA_WIDTH-1 downto 00);
 
-signal sin_prod         : std_logic_vector(47 downto 00);
-signal cos_prod         : std_logic_vector(47 downto 00);
-
 begin 
 
 ---------------- Find counter for MATH_PI ----------------
@@ -188,6 +182,9 @@ xWIDTH18: if (DATA_WIDTH < 19) generate
 	
 	signal cos_pdt     : std_logic_vector(48-XSHIFT-1 downto 00);
 	signal sin_pdt     : std_logic_vector(48-XSHIFT-1 downto 00);
+
+	signal sin_prod    : std_logic_vector(47 downto 00);
+	signal cos_prod    : std_logic_vector(47 downto 00);
 	
 begin
 
@@ -537,25 +534,23 @@ xWIDTH35: if (DATA_WIDTH > 18) generate
 	signal sin_aa			: std_logic_vector(34 downto 00):=(others=>'0');
 	signal cos_pp			: std_logic_vector(61 downto 00):=(others=>'0');
 	signal sin_pp			: std_logic_vector(61 downto 00):=(others=>'0');
-	
-	signal cos_sh			: std_logic_vector(DATA_WIDTH-1 downto 00):=(others=>'0');
-	signal sin_sh			: std_logic_vector(DATA_WIDTH-1 downto 00):=(others=>'0');	
 
-	signal mlt1_aa			: std_logic_vector(29 downto 0):=(others=>'0');
-	signal mlt1_bb			: std_logic_vector(17 downto 0):=(others=>'0');
-	signal mlt1_cc			: std_logic_vector(47 downto 0):=(others=>'0');
+	signal mlt1_bb			: std_logic_vector(DATA_WIDTH-1 downto 0):=(others=>'0');
+	signal mlt1_cc			: std_logic_vector(DATA_WIDTH-1 downto 0):=(others=>'0');
 
-	signal mlt2_aa			: std_logic_vector(29 downto 0):=(others=>'0');
-	signal mlt2_bb			: std_logic_vector(17 downto 0):=(others=>'0');
-	signal mlt2_cc			: std_logic_vector(47 downto 0):=(others=>'0');	
+	signal mlt2_bb			: std_logic_vector(DATA_WIDTH-1 downto 0):=(others=>'0');
+	signal mlt2_cc			: std_logic_vector(DATA_WIDTH-1 downto 0):=(others=>'0');	
 
-	signal cos_pdt          : std_logic_vector(DATA_WIDTH downto 00);
-	signal sin_pdt          : std_logic_vector(DATA_WIDTH downto 00);
+	signal cos_pdt          : std_logic_vector(DATA_WIDTH downto 00):=(others=>'0');
+	signal sin_pdt          : std_logic_vector(DATA_WIDTH downto 00):=(others=>'0');
 	
 	type std_logic_array_Dx3 is array (2 downto 0) of std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal sin_del          : std_logic_array_Dx3;
 	signal cos_del          : std_logic_array_Dx3;
-	
+
+	attribute USE_DSP       : string;
+	attribute USE_DSP of cos_pdt : signal is "yes";
+	attribute USE_DSP of sin_pdt : signal is "yes";
 begin
 
 
@@ -572,19 +567,12 @@ begin
 	end generate;
 
 	---- Multiplier ----
-	mlt1_aa(DATA_WIDTH-1-18 downto 0) <= cos_sh(DATA_WIDTH-1 downto 18);
-	mlt2_aa(DATA_WIDTH-1-18 downto 0) <= sin_sh(DATA_WIDTH-1 downto 18);
-	mlt1_aa(29 downto DATA_WIDTH-18) <= (others => cos_sh(DATA_WIDTH-1));
-	mlt2_aa(29 downto DATA_WIDTH-18) <= (others => sin_sh(DATA_WIDTH-1));
+    mlt1_bb <= cos_pp(DATA_WIDTH+XSHIFT-1 downto XSHIFT);
+    mlt2_bb <= sin_pp(DATA_WIDTH+XSHIFT-1 downto XSHIFT);  
 	
-    mlt1_bb <= cos_sh(17 downto 0);
-    mlt2_bb <= sin_sh(17 downto 0);   
+	mlt2_cc <= sin_del(sin_del'left) when rising_edge(clk);
+    mlt1_cc <= cos_del(cos_del'left) when rising_edge(clk);
 
-	mlt2_cc(DATA_WIDTH-1 downto 0) <= sin_del(sin_del'left) when rising_edge(clk);
-    mlt1_cc(DATA_WIDTH-1 downto 0) <= cos_del(cos_del'left) when rising_edge(clk);
-	mlt2_cc(47 downto DATA_WIDTH) <= (others => sin_del(sin_del'left)(DATA_WIDTH-1)) when rising_edge(clk);
-    mlt1_cc(47 downto DATA_WIDTH) <= (others => cos_del(cos_del'left)(DATA_WIDTH-1)) when rising_edge(clk);
-	
 	sin_del <= sin_del(sin_del'left-1 downto 0) & rom_dat(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) when rising_edge(clk);
 	cos_del <= cos_del(cos_del'left-1 downto 0) & rom_dat(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) when rising_edge(clk);
 
@@ -607,148 +595,9 @@ begin
 				MLT_P 	=> sin_pp(59 downto 00),
 				RST  	=> RST,
 				CLK 	=> CLK
-			);	
-
-		xADD: DSP48E1
-			generic map (
-				A_INPUT           => "DIRECT",
-				B_INPUT           => "DIRECT",
-				USE_DPORT         => FALSE,
-				USE_MULT          => "NONE",
-				USE_SIMD          => "ONE48",
-				ACASCREG 	      => 1,
-				ADREG 		      => 0,
-				ALUMODEREG 	      => 1,
-				AREG 		      => 1,
-				BCASCREG 	      => 1,
-				BREG 		      => 1,
-				CARRYINREG 	      => 1,
-				CARRYINSELREG     => 1,
-				CREG 		      => 1,
-				DREG 		      => 0,
-				INMODEREG 	      => 1,
-				MREG 		      => 0,
-				OPMODEREG         => 1,
-				PREG              => 1 
-			)
-			port map (
-				-- Data Product Output 
-				P                 => cos_prod,
-				-- Cascade: 30-bit (each) input: Cascade Ports
-				ACIN              => (others=>'0'),
-				BCIN              => (others=>'0'),
-				CARRYCASCIN       => '0',
-				MULTSIGNIN        => '0',
-				PCIN              => (others=>'0'),
-				-- Control: 4-bit (each) input: Control Inputs/Status Bits
-				ALUMODE           => (0 => '1', 1 => '1', others=>'0'),
-				CARRYINSEL        => (others=>'0'),
-				CLK               => clk, 
-				INMODE            => (others=>'0'),
-				OPMODE            => "0110011", 
-				-- Data: 30-bit (each) input: Data Ports
-				A                 => mlt1_aa,
-				B                 => mlt1_bb,
-				C                 => mlt1_cc,
-				CARRYIN           => '0',
-				D                 => (others=>'0'),
-				-- Reset/Clock Enable: 1-bit (each) input: Reset/Clock Enable Inputs
-				CEA1              => '1',
-				CEA2              => '1',
-				CEAD              => '1',
-				CEALUMODE         => '1',
-				CEB1              => '1',
-				CEB2              => '1',
-				CEC               => '1',
-				CECARRYIN         => '1',
-				CECTRL            => '1',
-				CED               => '1',
-				CEINMODE          => '1',
-				CEM               => '1',
-				CEP               => '1',
-				RSTA              => rst,
-				RSTALLCARRYIN     => rst,
-				RSTALUMODE        => rst,
-				RSTB              => rst,
-				RSTC              => rst,
-				RSTCTRL           => rst,
-				RSTD              => rst,
-				RSTINMODE         => rst,
-				RSTM              => rst,
-				RSTP              => rst 
-			);	
-
-		xSUB: DSP48E1
-			generic map (
-				A_INPUT           => "DIRECT",
-				B_INPUT           => "DIRECT",
-				USE_DPORT         => FALSE,
-				USE_MULT          => "NONE",
-				USE_SIMD          => "ONE48",
-				ACASCREG 	      => 1,
-				ADREG 		      => 0,
-				ALUMODEREG 	      => 1,
-				AREG 		      => 1,
-				BCASCREG 	      => 1,
-				BREG 		      => 1,
-				CARRYINREG 	      => 1,
-				CARRYINSELREG     => 1,
-				CREG 		      => 1,
-				DREG 		      => 0,
-				INMODEREG 	      => 1,
-				MREG 		      => 0,
-				OPMODEREG         => 1,
-				PREG              => 1 
-			)
-			port map (
-				-- Data Product Output 
-				P                 => sin_prod,
-				-- Cascade: 30-bit (each) input: Cascade Ports
-				ACIN              => (others=>'0'),
-				BCIN              => (others=>'0'),
-				CARRYCASCIN       => '0',
-				MULTSIGNIN        => '0',
-				PCIN              => (others=>'0'),
-				-- Control: 4-bit (each) input: Control Inputs/Status Bits
-				ALUMODE           => (others=>'0'),
-				CARRYINSEL        => (others=>'0'),
-				CLK               => clk, 
-				INMODE            => (others=>'0'),
-				OPMODE            => "0110011", 
-				-- Data: 30-bit (each) input: Data Ports
-				A                 => mlt2_aa,
-				B                 => mlt2_bb,
-				C                 => mlt2_cc,
-				CARRYIN           => '0',
-				D                 => (others=>'0'),
-				-- Reset/Clock Enable: 1-bit (each) input: Reset/Clock Enable Inputs
-				CEA1              => '1',
-				CEA2              => '1',
-				CEAD              => '1',
-				CEALUMODE         => '1',
-				CEB1              => '1',
-				CEB2              => '1',
-				CEC               => '1',
-				CECARRYIN         => '1',
-				CECTRL            => '1',
-				CED               => '1',
-				CEINMODE          => '1',
-				CEM               => '1',
-				CEP               => '1',
-				RSTA              => rst,
-				RSTALLCARRYIN     => rst,
-				RSTALUMODE        => rst,
-				RSTB              => rst,
-				RSTC              => rst,
-				RSTCTRL           => rst,
-				RSTD              => rst,
-				RSTINMODE         => rst,
-				RSTM              => rst,
-				RSTP              => rst 
-			);	
+			);		
 	end generate;	
 
-	
 	---- Wrap DSP48E2 ----
 	xDSP48E2: if (XSERIES = "ULTRA") generate
 		
@@ -768,152 +617,21 @@ begin
 				MLT_P 	=> sin_pp,
 				RST  	=> RST,
 				CLK 	=> CLK
-			);	
-			
-		xADD: DSP48E2
-			generic map (
-				AMULTSEL 	      => "A",
-				A_INPUT 	      => "DIRECT",
-				BMULTSEL 	      => "B",
-				B_INPUT 	      => "DIRECT",
-				PREADDINSEL       => "A",
-				USE_MULT 	      => "NONE",
-				ACASCREG 	      => 1,
-				ADREG 		      => 0,
-				ALUMODEREG 	      => 1,
-				AREG 		      => 1,
-				BCASCREG 	      => 1,
-				BREG 		      => 1,
-				CARRYINREG 	      => 1,
-				CARRYINSELREG     => 1,
-				CREG 		      => 1,
-				DREG 		      => 0,
-				INMODEREG 	      => 1,
-				MREG 		      => 0,
-				OPMODEREG         => 1,
-				PREG              => 1 
-			)
-			port map (
-				-- Data Product Output 
-				P                 => cos_prod,
-				-- Cascade: 30-bit (each) input: Cascade Ports
-				ACIN              => (others=>'0'),
-				BCIN              => (others=>'0'),
-				CARRYCASCIN       => '0',
-				MULTSIGNIN        => '0',
-				PCIN              => (others=>'0'),
-				-- Control: 4-bit (each) input: Control Inputs/Status Bits
-				ALUMODE           => (0 => '1', 1 => '1', others=>'0'),
-				CARRYINSEL        => (others=>'0'),
-				CLK               => clk, 
-				INMODE            => (others=>'0'),
-				OPMODE            => "000110011", 
-				-- Data: 30-bit (each) input: Data Ports
-				A                 => mlt1_aa,
-				B                 => mlt1_bb,
-				C                 => mlt1_cc,
-				CARRYIN           => '0',
-				D                 => (others=>'0'),
-				-- Reset/Clock Enable: 1-bit (each) input: Reset/Clock Enable Inputs
-				CEA1              => '1',
-				CEA2              => '1',
-				CEAD              => '1',
-				CEALUMODE         => '1',
-				CEB1              => '1',
-				CEB2              => '1',
-				CEC               => '1',
-				CECARRYIN         => '1',
-				CECTRL            => '1',
-				CED               => '1',
-				CEINMODE          => '1',
-				CEM               => '1',
-				CEP               => '1',
-				RSTA              => rst,
-				RSTALLCARRYIN     => rst,
-				RSTALUMODE        => rst,
-				RSTB              => rst,
-				RSTC              => rst,
-				RSTCTRL           => rst,
-				RSTD              => rst,
-				RSTINMODE         => rst,
-				RSTM              => rst,
-				RSTP              => rst 
-			);	
-
-		xSUB: DSP48E2
-			generic map (
-				AMULTSEL 		  => "A",
-				A_INPUT 		  => "DIRECT",
-				BMULTSEL 		  => "B",
-				B_INPUT 		  => "DIRECT",
-				PREADDINSEL 	  => "A",
-				USE_MULT 		  => "NONE",
-				ACASCREG 	      => 1,
-				ADREG 		      => 0,
-				ALUMODEREG 	      => 1,
-				AREG 		      => 1,
-				BCASCREG 	      => 1,
-				BREG 		      => 1,
-				CARRYINREG 	      => 1,
-				CARRYINSELREG     => 1,
-				CREG 		      => 1,
-				DREG 		      => 0,
-				INMODEREG 	      => 1,
-				MREG 		      => 0,
-				OPMODEREG         => 1,
-				PREG              => 1 
-			)
-			port map (
-				-- Data Product Output 
-				P                 => sin_prod,
-				-- Cascade: 30-bit (each) input: Cascade Ports
-				ACIN              => (others=>'0'),
-				BCIN              => (others=>'0'),
-				CARRYCASCIN       => '0',
-				MULTSIGNIN        => '0',
-				PCIN              => (others=>'0'),
-				-- Control: 4-bit (each) input: Control Inputs/Status Bits
-				ALUMODE           => (others=>'0'),
-				CARRYINSEL        => (others=>'0'),
-				CLK               => clk, 
-				INMODE            => (others=>'0'),
-				OPMODE            => "000110011", 
-				-- Data: 30-bit (each) input: Data Ports
-				A                 => mlt2_aa,
-				B                 => mlt2_bb,
-				C                 => mlt2_cc,
-				CARRYIN           => '0',
-				D                 => (others=>'0'),
-				-- Reset/Clock Enable: 1-bit (each) input: Reset/Clock Enable Inputs
-				CEA1              => '1',
-				CEA2              => '1',
-				CEAD              => '1',
-				CEALUMODE         => '1',
-				CEB1              => '1',
-				CEB2              => '1',
-				CEC               => '1',
-				CECARRYIN         => '1',
-				CECTRL            => '1',
-				CED               => '1',
-				CEINMODE          => '1',
-				CEM               => '1',
-				CEP               => '1',
-				RSTA              => rst,
-				RSTALLCARRYIN     => rst,
-				RSTALUMODE        => rst,
-				RSTB              => rst,
-				RSTC              => rst,
-				RSTCTRL           => rst,
-				RSTD              => rst,
-				RSTINMODE         => rst,
-				RSTM              => rst,
-				RSTP              => rst 
-			);				
-
+			);
 	end generate;
 
-	cos_sh <= cos_pp(DATA_WIDTH+XSHIFT-1 downto XSHIFT);
-    sin_sh <= sin_pp(DATA_WIDTH+XSHIFT-1 downto XSHIFT);	
+	pr_addsub: process(clk) is
+	begin
+		if rising_edge(clk) then
+			if (rst = '1') then
+				cos_pdt <= (others=>'0');
+				sin_pdt <= (others=>'0');
+			else
+				cos_pdt <= (mlt1_cc(mlt1_cc'left) & mlt1_cc) - (mlt1_bb(mlt1_bb'left) & mlt1_bb);
+				sin_pdt <= (mlt2_cc(mlt2_cc'left) & mlt2_cc) + (mlt2_bb(mlt2_bb'left) & mlt2_bb);
+			end if;
+		end if;
+	end process;	
 
 	-- Rounding +/-0.5 ----
 	pr_rnd: process(clk) is
@@ -931,11 +649,9 @@ begin
 				sin_rnd <= sin_pdt(DATA_WIDTH downto 1);
 			end if;		
 		end if;
-	end process;
-	cos_pdt <= cos_prod(DATA_WIDTH downto 0) when rising_edge(clk);
-	sin_pdt <= sin_prod(DATA_WIDTH downto 0) when rising_edge(clk);	
-	-- cos_rnd <= cos_prod(DATA_WIDTH-1 downto 0) when rising_edge(clk);
-	-- sin_rnd <= sin_prod(DATA_WIDTH-1 downto 0) when rising_edge(clk);
+	end process;	
+	
+	
 end generate;
 
 dsp_dat(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) <= cos_rnd;
