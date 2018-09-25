@@ -562,7 +562,7 @@ begin
 		xMLT1: entity work.mlt35x27_dsp48e2
 			port map (
 				MLT_A 	=> cos_aa,
-				MLT_B 	=> mpx(24 downto 0),
+				MLT_B 	=> mpx(26 downto 0),
 				MLT_P 	=> cos_pp,
 				RST  	=> RST,
 				CLK 	=> CLK
@@ -571,7 +571,7 @@ begin
 		xMLT2: entity work.mlt35x27_dsp48e2
 			port map (
 				MLT_A 	=> sin_aa,
-				MLT_B 	=> mpx(24 downto 0),
+				MLT_B 	=> mpx(26 downto 0),
 				MLT_P 	=> sin_pp,
 				RST  	=> RST,
 				CLK 	=> CLK
