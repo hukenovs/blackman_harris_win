@@ -559,7 +559,7 @@ begin
 	---- Wrap DSP48E2 ----
 	xDSP48E2: if (XSERIES = "ULTRA") generate
 		
-		xMLT1: entity work.mlt35x25_dsp48e1
+		xMLT1: entity work.mlt35x27_dsp48e2
 			port map (
 				MLT_A 	=> cos_aa,
 				MLT_B 	=> mpx(24 downto 0),
@@ -568,7 +568,7 @@ begin
 				CLK 	=> CLK
 			);	
 			
-		xMLT2: entity work.mlt35x25_dsp48e1
+		xMLT2: entity work.mlt35x27_dsp48e2
 			port map (
 				MLT_A 	=> sin_aa,
 				MLT_B 	=> mpx(24 downto 0),

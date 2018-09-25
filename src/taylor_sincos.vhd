@@ -64,11 +64,11 @@ use ieee.math_real.all;
 
 entity taylor_sincos is
     generic (
-        DATA_WIDTH      : integer:= 24; --! Number of bits in sin/cos 
+        DATA_WIDTH      : integer:= 32; --! Number of bits in sin/cos 
         PHASE_WIDTH     : integer:= 14; --! Number of bits in phase accumulator
-        LUT_SIZE        : integer:= 10; --! ROM depth for sin/cos (must be less than PHASE_WIDTH)
-        TAY_ORDER       : integer range 1 to 2:=1; -- Taylor series order 1 or 2
-        XSERIES         : string:="7SERIES" --! for 6/7 series: "7SERIES"; for ULTRASCALE: "ULTRA";
+        LUT_SIZE        : integer:= 9; --! ROM depth for sin/cos (must be less than PHASE_WIDTH)
+        -- TAY_ORDER       : integer range 1 to 2:=1; -- Taylor series order 1 or 2
+        XSERIES         : string:="ULTRA" --! for 6/7 series: "7SERIES"; for ULTRASCALE: "ULTRA";
 	);
     port (
 		RST             : in std_logic; --! Global reset
@@ -191,47 +191,28 @@ begin
 		acnt <= cnt(PHASE_WIDTH-3-LUT_SIZE downto 0);-- when rising_edge(clk);
 	
 		---- 1st order Taylor scheme ----
-		xORD1: if (TAY_ORDER = 1) generate
-			xTAY1: entity work.tay1_order
-				generic map (
-					DATA_WIDTH  => DATA_WIDTH,
-					USE_MLT     => FALSE,
-					VAL_SHIFT   => LUT_SIZE,
-					XSERIES     => XSERIES,
-					STAGE       => PHASE_WIDTH-LUT_SIZE-3
-				)
-				port map (
-					rom_dat		=> dpo,
-					rom_cnt		=> acnt,
-					
-					dsp_dat		=> tay_dat,
-					
-					clk 		=> clk,
-					rst  		=> rst
-				);
-		end generate;
+		xTAY1: entity work.tay1_order
+			generic map (
+				DATA_WIDTH  => DATA_WIDTH,
+				USE_MLT     => FALSE,
+				VAL_SHIFT   => LUT_SIZE,
+				XSERIES     => XSERIES,
+				STAGE       => PHASE_WIDTH-LUT_SIZE-3
+			)
+			port map (
+				rom_dat		=> dpo,
+				rom_cnt		=> acnt,
+				
+				dsp_dat		=> tay_dat,
+				
+				clk 		=> clk,
+				rst  		=> rst
+			);
 		
-		-- ---- 2nd order Taylor scheme ----
-		-- xORD2: if (TAY_ORDER = 2) generate
-			-- X_TAYLOR_COE: entity work.tay2_order
-				-- generic map (
-					-- DATA_WIDTH  => DATA_WIDTH,
-					-- USE_MLT     => FALSE,
-					-- VAL_SHIFT   => LUT_SIZE,
-					-- XSERIES     => XSERIES,
-					-- STAGE       => PHASE_WIDTH-LUT_SIZE-3
-				-- )
-				-- port map (
-					-- rom_ww		=> dpo,
-					-- rom_en		=> ww_enaz(3),
-					   
-					-- dsp_ww		=> tay_dat,
-					-- int_cnt		=> acnt,
-					
-					-- clk			=> clk,
-					-- rst			=> rst
-				-- );
-		-- end generate;
+		
+		---- 2nd order Taylor scheme ----
+		---- *DELETED* ----
+		
 		mem_sin <= tay_dat(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) when rising_edge(clk);	
 		mem_cos <= tay_dat(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) when rising_edge(clk);
 		
