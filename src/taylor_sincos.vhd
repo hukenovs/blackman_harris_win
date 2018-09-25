@@ -58,19 +58,19 @@ use ieee.math_real.all;
 
 entity taylor_sincos is
     generic (
-        DATA_WIDTH		: integer:= 24; --! Number of bits in sin/cos 
-        PHASE_WIDTH		: integer:= 14; --! Number of bits in phase accumulator
-        LUT_SIZE		: integer:= 10; --! ROM depth for sin/cos (must be less than PHASE_WiDTH)
-        TAY_ORDER		: integer range 1 to 2:=1; -- Taylor series order 1 or 2
-        XSERIES			: string:="7SERIES" --! for 6/7 series: "7SERIES"; for ULTRASCALE: "ULTRA";
+        DATA_WIDTH      : integer:= 24; --! Number of bits in sin/cos 
+        PHASE_WIDTH     : integer:= 14; --! Number of bits in phase accumulator
+        LUT_SIZE        : integer:= 10; --! ROM depth for sin/cos (must be less than PHASE_WiDTH)
+        TAY_ORDER       : integer range 1 to 2:=1; -- Taylor series order 1 or 2
+        XSERIES         : string:="7SERIES" --! for 6/7 series: "7SERIES"; for ULTRASCALE: "ULTRA";
 	);
     port (
-		RST				: in std_logic; --! Global reset
-		CLK				: in std_logic; --! Rising edge DSP clock
+		RST             : in std_logic; --! Global reset
+		CLK             : in std_logic; --! Rising edge DSP clock
 		
-		PHI_ENA			: in std_logic; --! Phase valid signal
-		OUT_SIN			: out std_logic_vector(DATA_WIDTH-1 downto 0); -- Sine output
-		OUT_COS			: out std_logic_vector(DATA_WIDTH-1 downto 0) -- Cosine output
+		PHI_ENA         : in std_logic; --! Phase valid signal
+		OUT_SIN         : out std_logic_vector(DATA_WIDTH-1 downto 0); -- Sine output
+		OUT_COS         : out std_logic_vector(DATA_WIDTH-1 downto 0) -- Cosine output
 	);
 end entity;
 
