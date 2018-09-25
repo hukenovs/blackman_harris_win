@@ -58,8 +58,8 @@ use ieee.math_real.all;
 
 entity taylor_sincos is
     generic (
-        DATA_WIDTH		: integer:= 18; --! Number of bits in sin/cos 
-        PHASE_WIDTH		: integer:= 12; --! Number of bits in phase accumulator
+        DATA_WIDTH		: integer:= 24; --! Number of bits in sin/cos 
+        PHASE_WIDTH		: integer:= 14; --! Number of bits in phase accumulator
         LUT_SIZE		: integer:= 10; --! ROM depth for sin/cos (must be less than PHASE_WiDTH)
         TAY_ORDER		: integer range 1 to 2:=1; -- Taylor series order 1 or 2
         XSERIES			: string:="7SERIES" --! for 6/7 series: "7SERIES"; for ULTRASCALE: "ULTRA";
@@ -105,15 +105,15 @@ architecture taylor_sincos of taylor_sincos is
 	constant ROM_ARRAY : std_array_RxN := rom_calculate(LUT_SIZE);
 	
 	---- Phase counter and quadrant ----
-	signal half			: std_logic;
-	signal cnt			: std_logic_vector(PHASE_WIDTH-1 downto 0);
-	signal addr 		: std_logic_vector(LUT_SIZE-1 downto 0);	
-	signal quadrant 	: std_logic_vector(1 downto 0);	
+	signal cnt          : std_logic_vector(PHASE_WIDTH-1 downto 0);
+	signal addr         : std_logic_vector(LUT_SIZE-1 downto 0);	
+	signal quadrant     : std_logic_vector(1 downto 0);	
+	signal selq         : std_logic_vector(1 downto 0);	
 	
     ---- Output mem & registers ----
-    signal dpo			: std_logic_vector(2*DATA_WIDTH-1 downto 0);
-    signal mem_sin		: std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal mem_cos		: std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal dpo          : std_logic_vector(2*DATA_WIDTH-1 downto 0);
+    signal mem_sin      : std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal mem_cos      : std_logic_vector(DATA_WIDTH-1 downto 0);
 
 	---- Select RAM type: Distributed or Block ----
 	function calc_string(xx : integer) return string is
@@ -163,7 +163,23 @@ begin
 	xGEN_MORE: if ((PHASE_WIDTH - LUT_SIZE) > 2) generate		
 		signal acnt     : std_logic_vector(PHASE_WIDTH-LUT_SIZE-3 downto 0);
 		signal tay_dat  : std_logic_vector(2*DATA_WIDTH-1 downto 0);
-
+	
+		---- Addition delay for 1-order Taylor series ----
+		function find_delay(xx: in integer) return integer is
+			variable ret    : integer:=0;
+		begin
+			if (xx < 19) then
+				ret := 5;
+			else
+				ret := 8;
+			end if;
+			return ret;
+		end;
+		constant ADD_DELAY	: integer:=find_delay(DATA_WIDTH);
+		
+		type std_logic_delN is array (ADD_DELAY downto 0) of std_logic_vector(1 downto 0); 
+		signal quad 	: std_logic_delN;	
+	
 	begin
 		addr <= cnt(PHASE_WIDTH-3 downto PHASE_WIDTH-LUT_SIZE-2);-- when rising_edge(clk);
 		acnt <= cnt(PHASE_WIDTH-3-LUT_SIZE downto 0);-- when rising_edge(clk);
@@ -191,10 +207,13 @@ begin
 		
 		-- ---- 2nd order Taylor scheme ----
 		-- xORD2: if (TAY_ORDER = 2) generate
-			-- X_TAYLOR_COE: entity work.fp23_cnt2flt_m1
+			-- X_TAYLOR_COE: entity work.tay2_order
 				-- generic map (
-					-- XSERIES  	=> XSERIES,
-					-- ii			=> PHASE_WIDTH-LUT_SIZE-3
+					-- DATA_WIDTH  => DATA_WIDTH,
+					-- USE_MLT     => FALSE,
+					-- VAL_SHIFT   => LUT_SIZE,
+					-- XSERIES     => XSERIES,
+					-- STAGE       => PHASE_WIDTH-LUT_SIZE-3
 				-- )
 				-- port map (
 					-- rom_ww		=> dpo,
@@ -210,22 +229,42 @@ begin
 		mem_sin <= tay_dat(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) when rising_edge(clk);	
 		mem_cos <= tay_dat(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) when rising_edge(clk);
 		
+		quad <= quad(quad'left-1 downto 0) & quadrant when rising_edge(clk);
+		selq <= quad(quad'left);
 	end generate;
 	
 	xGEN_OUT: if ((PHASE_WIDTH - LUT_SIZE) <= 2) generate
+		type std_logic_delN is array (2 downto 0) of std_logic_vector(1 downto 0); 
+		signal quad 	: std_logic_delN;	
+	begin	
 		mem_sin <= dpo(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) when rising_edge(clk);
 		mem_cos <= dpo(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) when rising_edge(clk);
+		
+		quad <= quad(quad'left-1 downto 0) & quadrant when rising_edge(clk);
+		selq <= quad(quad'left);
 	end generate;	
-	
-	
-	
+
 	dpo <= ROM_ARRAY(conv_integer(UNSIGNED(addr))) when rising_edge(clk);
 
 	---- Output data ----
-	out_sin	<= mem_sin;
-	out_cos	<= mem_cos;		
-	
-
-	
+	pr_quad: process(clk) is
+	begin
+		if rising_edge(clk) then
+			case selq is
+				when "00" => 
+					out_sin	<= mem_sin;
+					out_cos	<= mem_cos;
+				when "01" => 
+					out_sin	<= mem_cos;
+					out_cos	<= NOT(mem_sin) + '1';
+				when "10" => 
+					out_sin	<= NOT(mem_sin) + '1';
+					out_cos	<= NOT(mem_cos) + '1';
+				when others => 
+					out_sin	<= NOT(mem_cos) + '1';
+					out_cos	<= mem_sin;	
+			end case;
+		end if;
+	end process;
 
 end architecture;

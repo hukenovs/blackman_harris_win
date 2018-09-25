@@ -179,9 +179,6 @@ xWIDTH18: if (DATA_WIDTH < 19) generate
 	signal sin_aa      : std_logic_vector(17 downto 00);
 	signal cos_cc      : std_logic_vector(47 downto 00);
 	signal sin_cc      : std_logic_vector(47 downto 00);
-	
-	signal cos_pdt     : std_logic_vector(48-XSHIFT-1 downto 00);
-	signal sin_pdt     : std_logic_vector(48-XSHIFT-1 downto 00);
 
 	signal sin_prod    : std_logic_vector(47 downto 00);
 	signal cos_prod    : std_logic_vector(47 downto 00);
@@ -189,16 +186,8 @@ xWIDTH18: if (DATA_WIDTH < 19) generate
 begin
 
 	---- Wrap input data B ----
-	xM12B: for ii in 0 to 17 generate
-		xLSB: if (ii < DATA_WIDTH) generate 
-			sin_aa(ii) <= rom_dat(ii+1*DATA_WIDTH);
-			cos_aa(ii) <= rom_dat(ii+0*DATA_WIDTH);
-		end generate;
-		xMSB: if (ii >= DATA_WIDTH) generate
-			sin_aa(ii) <= rom_dat(2*DATA_WIDTH-1);
-			cos_aa(ii) <= rom_dat(1*DATA_WIDTH-1);
-		end generate;
-	end generate;
+	sin_aa <= SXT(rom_dat(2*DATA_WIDTH-1 downto 1*DATA_WIDTH), 18);
+	cos_aa <= SXT(rom_dat(1*DATA_WIDTH-1 downto 0*DATA_WIDTH), 18);	
 
 	---- Wrap input data C ----
 	xM12C: for ii in XSHIFT to 47 generate
@@ -505,27 +494,9 @@ begin
 				RSTP 				=> rst 
 			);
 	end generate;
-	
-	-- Rounding +/-0.5 ----
-	pr_rnd: process(clk) is
-	begin
-		if rising_edge(clk) then
-			if (cos_pdt(0) = '1') then
-				cos_rnd <= cos_pdt(48-XSHIFT-1-(18-DATA_WIDTH) downto 1) + 1;
-			else
-				cos_rnd <= cos_pdt(48-XSHIFT-1-(18-DATA_WIDTH) downto 1);
-			end if;
-			
-			if (sin_pdt(0) = '1') then
-				sin_rnd <= sin_pdt(48-XSHIFT-1-(18-DATA_WIDTH) downto 1) + 1;
-			else                               
-				sin_rnd <= sin_pdt(48-XSHIFT-1-(18-DATA_WIDTH) downto 1);
-			end if;		
-		end if;
-	end process;
 
-	cos_pdt <= cos_prod(47-1 downto XSHIFT-1) when rising_edge(clk);
-	sin_pdt <= sin_prod(47-1 downto XSHIFT-1) when rising_edge(clk);
+	cos_rnd <= cos_prod(19+VAL_SHIFT+DATA_WIDTH-1 downto 19+VAL_SHIFT) when rising_edge(clk);
+	sin_rnd <= sin_prod(19+VAL_SHIFT+DATA_WIDTH-1 downto 19+VAL_SHIFT) when rising_edge(clk);	
 
 end generate;
 
@@ -541,37 +512,21 @@ xWIDTH35: if (DATA_WIDTH > 18) generate
 	signal mlt2_bb			: std_logic_vector(DATA_WIDTH-1 downto 0):=(others=>'0');
 	signal mlt2_cc			: std_logic_vector(DATA_WIDTH-1 downto 0):=(others=>'0');	
 
-	signal cos_pdt          : std_logic_vector(DATA_WIDTH downto 00):=(others=>'0');
-	signal sin_pdt          : std_logic_vector(DATA_WIDTH downto 00):=(others=>'0');
-	
-	type std_logic_array_Dx3 is array (2 downto 0) of std_logic_vector(DATA_WIDTH-1 downto 0);
+	type std_logic_array_Dx3 is array (3 downto 0) of std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal sin_del          : std_logic_array_Dx3;
 	signal cos_del          : std_logic_array_Dx3;
 
+	signal cos_pdt          : std_logic_vector(DATA_WIDTH-1 downto 00);
+	signal sin_pdt          : std_logic_vector(DATA_WIDTH-1 downto 00);
+	
 	attribute USE_DSP       : string;
 	attribute USE_DSP of cos_pdt : signal is "yes";
 	attribute USE_DSP of sin_pdt : signal is "yes";
+	
 begin
 
-
-	---- Wrap input data B ----
-	xM12B: for ii in 0 to 34 generate
-		xLSB: if (ii < DATA_WIDTH) generate 
-			sin_aa(ii) <= rom_dat(ii+0*DATA_WIDTH);
-			cos_aa(ii) <= rom_dat(ii+1*DATA_WIDTH);
-		end generate;
-		xMSB: if (ii >= DATA_WIDTH) generate
-			sin_aa(ii) <= rom_dat(1*DATA_WIDTH-1);
-			cos_aa(ii) <= rom_dat(2*DATA_WIDTH-1);
-		end generate;
-	end generate;
-
-	---- Multiplier ----
-    mlt1_bb <= cos_pp(DATA_WIDTH+XSHIFT-1 downto XSHIFT);
-    mlt2_bb <= sin_pp(DATA_WIDTH+XSHIFT-1 downto XSHIFT);  
-	
-	mlt2_cc <= sin_del(sin_del'left) when rising_edge(clk);
-    mlt1_cc <= cos_del(cos_del'left) when rising_edge(clk);
+	sin_aa <= SXT(rom_dat(2*DATA_WIDTH-1 downto 1*DATA_WIDTH), 35);
+	cos_aa <= SXT(rom_dat(1*DATA_WIDTH-1 downto 0*DATA_WIDTH), 35);
 
 	sin_del <= sin_del(sin_del'left-1 downto 0) & rom_dat(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) when rising_edge(clk);
 	cos_del <= cos_del(cos_del'left-1 downto 0) & rom_dat(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) when rising_edge(clk);
@@ -623,39 +578,62 @@ begin
 	pr_addsub: process(clk) is
 	begin
 		if rising_edge(clk) then
+			---- 1st operand ----
+			mlt1_bb <= sin_pp(DATA_WIDTH+XSHIFT-1 downto XSHIFT);
+			mlt2_bb <= cos_pp(DATA_WIDTH+XSHIFT-1 downto XSHIFT);  
+			---- 2nd operand ----
+			mlt2_cc <= sin_del(sin_del'left);
+			mlt1_cc <= cos_del(cos_del'left);			
+			---- *Infer DSP48 block* ----
 			if (rst = '1') then
 				cos_pdt <= (others=>'0');
 				sin_pdt <= (others=>'0');
 			else
-				cos_pdt <= (mlt1_cc(mlt1_cc'left) & mlt1_cc) - (mlt1_bb(mlt1_bb'left) & mlt1_bb);
-				sin_pdt <= (mlt2_cc(mlt2_cc'left) & mlt2_cc) + (mlt2_bb(mlt2_bb'left) & mlt2_bb);
+				cos_pdt <= mlt1_cc - mlt1_bb;
+				sin_pdt <= mlt2_cc + mlt2_bb;
 			end if;
 		end if;
 	end process;	
 
-	-- Rounding +/-0.5 ----
+	---- Scale overflow values ----
 	pr_rnd: process(clk) is
 	begin
 		if rising_edge(clk) then
-			if (cos_pdt(0) = '1') then
-				cos_rnd <= cos_pdt(DATA_WIDTH downto 1) + 1;
+			if (cos_pdt(DATA_WIDTH-1) = '0') then
+				cos_rnd <= cos_pdt;
 			else
-				cos_rnd <= cos_pdt(DATA_WIDTH downto 1);
+				cos_rnd <= ((DATA_WIDTH-1) => '0', others=>'1');
 			end if;
 			
-			if (sin_pdt(0) = '1') then
-				sin_rnd <= sin_pdt(DATA_WIDTH downto 1) + 1;
+			if (sin_pdt(DATA_WIDTH-1) = '0') then
+				sin_rnd <= sin_pdt;
 			else
-				sin_rnd <= sin_pdt(DATA_WIDTH downto 1);
-			end if;		
+				sin_rnd <= ((DATA_WIDTH-1) => '0', others=>'1');
+			end if;	
 		end if;
-	end process;	
-	
+	end process;		
+
+	-- Rounding +/-0.5 ----
+	-- pr_rnd: process(clk) is
+	-- begin
+		-- if rising_edge(clk) then
+			-- if (cos_pdt(0) = '1') then
+				-- cos_rnd <= cos_pdt(DATA_WIDTH downto 1) + 1;
+			-- else
+				-- cos_rnd <= cos_pdt(DATA_WIDTH downto 1);
+			-- end if;
+			
+			-- if (sin_pdt(0) = '1') then
+				-- sin_rnd <= sin_pdt(DATA_WIDTH downto 1) + 1;
+			-- else
+				-- sin_rnd <= sin_pdt(DATA_WIDTH downto 1);
+			-- end if;		
+		-- end if;
+	-- end process;	
 	
 end generate;
 
-dsp_dat(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) <= cos_rnd;
-dsp_dat(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) <= sin_rnd;
-
+dsp_dat(2*DATA_WIDTH-1 downto 1*DATA_WIDTH) <= sin_rnd;
+dsp_dat(1*DATA_WIDTH-1 downto 0*DATA_WIDTH) <= cos_rnd;
 
 end tay1_order;
