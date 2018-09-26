@@ -211,8 +211,7 @@ end process;
 pr_add: process(clk) is
 begin
 	if rising_edge(clk) then
-		dsp_pp <= 	(dsp_b1(DAT_WIDTH-1) & dsp_b1) + 
-		            (dsp_b0(DAT_WIDTH-1) & dsp_b0);	
+		dsp_pp <= 	(dsp_b0(DAT_WIDTH-1) & dsp_b0) - (dsp_b1(DAT_WIDTH-1) & dsp_b1);	
 	end if;
 end process;
 
