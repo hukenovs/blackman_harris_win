@@ -16,20 +16,20 @@ License: GNU GPL 3.0.
 
 ### Info:
 
-| **Title**         | Universal window functions |
+| **Title**         | Universal window functions           |
 | -- | -- |
-| **Author**        | Alexander Kapitanov                        |
-| **Contact**       | sallador@bk.ru                             |
-| **Project lang**  | VHDL                                       |
-| **Vendor**        | Xilinx: 6/7-series, Ultrascale, US+        |
-| **Release Date**  | 20 Sep 2018                                |
-| **Version**       | 1.0                                        |
+| **Author**        | Alexander Kapitanov                  |
+| **Contact**       | sallador@bk.ru                       |
+| **Project lang**  | VHDL                                 |
+| **Vendor**        | Xilinx: 6/7-series, Ultrascale, US+  |
+| **Release Date**  | 20 Sep 2018                          |
+| **Version**       | 1.0                                  |
 
 ### List of components:
 
 | **Component name**    | Function | Side lobe lvl (dB)    |
 | -- | -- | -- |
-| **hamming_win**       | Hamming (Hann)            | -43  |
+| **hamming_win**       | Hamming (Hann)            | -43  |       
 | **hamming_win**       | Hann                      | -32  |
 | **bh_win_3term**      | Blackman                  | -58  |
 | **bh_win_3term**      | Blackman-Harris           | -71  |
@@ -49,5 +49,7 @@ License: GNU GPL 3.0.
   * _a4 = 0.01081174209837_
   * _a5 = −0.00077658482522_
   * _a6 = 0.00001388721735_
+
+it gives you up to 180 dB side lobe level.
 
 For more information see: https://habr.com/users/capitanov/topics/ 
