@@ -406,11 +406,11 @@ pr_add: process(clk) is
 begin
 	if rising_edge(clk) then
 		---- Firts stage of addition ----
-		dsp_p1 <=	(dsp_b0(DAT_WIDTH-1) & dsp_b0(DAT_WIDTH-1) & dsp_b0) + 
+		dsp_p1 <=	(dsp_b0(DAT_WIDTH-1) & dsp_b0(DAT_WIDTH-1) & dsp_b0) - 
 					(dsp_b1(DAT_WIDTH-1) & dsp_b1(DAT_WIDTH-1) & dsp_b1)  after td;
-		dsp_p2 <=	(dsp_b2(DAT_WIDTH-1) & dsp_b2(DAT_WIDTH-1) & dsp_b2) + 
+		dsp_p2 <=	(dsp_b2(DAT_WIDTH-1) & dsp_b2(DAT_WIDTH-1) & dsp_b2) - 
 					(dsp_b3(DAT_WIDTH-1) & dsp_b3(DAT_WIDTH-1) & dsp_b3) after td;
-		dsp_p3 <=	(dsp_b4(DAT_WIDTH-1) & dsp_b4(DAT_WIDTH-1) & dsp_b4) + 
+		dsp_p3 <=	(dsp_b4(DAT_WIDTH-1) & dsp_b4(DAT_WIDTH-1) & dsp_b4) -
 					(dsp_b5(DAT_WIDTH-1) & dsp_b5(DAT_WIDTH-1) & dsp_b5) after td;
 					
 		dsp_pz <=	(dsp_b6(DAT_WIDTH-1) & dsp_b6(DAT_WIDTH-1) & dsp_b6) after td;	
