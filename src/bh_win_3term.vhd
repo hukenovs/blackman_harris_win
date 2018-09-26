@@ -19,6 +19,17 @@
 --     a0 = 0.42, a1 = 0.5, a2 = 0.08. (alpha = 0.16) Side-lobe level 58 dB. 
 --     a0 = 0.4243801, a1 = 0.4973406, a2 = 0.0782793). Side-lobe level 71.48 dB.
 --
+--  Parameters:
+--    PHI_WIDTH - Signal period = 2^PHI_WIDTH
+--    DAT_WIDTH - Output data width		
+--    SIN_TYPE  -Sine generator type: CORDIC / TAYLOR
+--    ---- For Taylor series only ----
+--    LUT_SIZE  - ROM depth for sin/cos (must be less than PHASE_WIDTH)
+--    XSERIES   - for 6/7 series: "7SERIES"; for ULTRASCALE: "ULTRA"; 
+--
+--  Note: While using TAYLOR scheme You must set LUT_SIZE < (PHASE_WIDTH - 3) 
+--        for correct delays. 
+--
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 --
@@ -55,12 +66,16 @@ use ieee.std_logic_signed.all;
 -- use unisim.vcomponents.DSP48E2;
 
 entity bh_win_3term is
-	generic(
-		TD			: time:=0.5ns;		--! Time delay
-		PHI_WIDTH	: integer:=10;		--! Signal period = 2^PHI_WIDTH
-		DAT_WIDTH	: integer:=16		--! Output data width
+	generic (
+		TD			: time:=0.5ns;      --! Time delay
+		PHI_WIDTH	: integer:=10;      --! Signal period = 2^PHI_WIDTH
+		DAT_WIDTH	: integer:=16;      --! Output data width		
+		SIN_TYPE    : string:="CORDIC"; --! Sine generator type: CORDIC / TAYLOR
+		---- For Taylor series only ----
+		LUT_SIZE    : integer:= 9;      --! ROM depth for sin/cos (must be less than PHASE_WIDTH)
+        XSERIES     : string:="ULTRA"   --! for 6/7 series: "7SERIES"; for ULTRASCALE: "ULTRA";
 	);
-	port(
+	port (
 		RESET  		: in  std_logic;	--! Global reset 
 		CLK 		: in  std_logic;	--! System clock 
 
@@ -83,7 +98,6 @@ signal cos2				: std_logic_vector(DAT_WIDTH-1 downto 0);
 signal ph_in1			: std_logic_vector(PHI_WIDTH-1 downto 0);
 signal ph_in2			: std_logic_vector(PHI_WIDTH-1 downto 0);
 
-
 ---------------- Multiplier signals ----------------
 signal mult_a1			: std_logic_vector(DAT_WIDTH-1 downto 0);
 signal mult_a2			: std_logic_vector(DAT_WIDTH-1 downto 0);
@@ -103,9 +117,31 @@ signal dsp_r1			: std_logic_vector(DAT_WIDTH downto 0);
 signal dsp_r2			: std_logic_vector(DAT_WIDTH downto 0);
 
 ---------------- DSP48 signals ----------------
+---- Addition delay ----
+function find_delay return integer is
+	variable ret    : integer:=0;
+begin
+	if (SIN_TYPE = "CORDIC") then
+		ret := DAT_WIDTH+7;
+	elsif (SIN_TYPE = "TAYLOR") then
+		if (PHI_WIDTH - LUT_SIZE <= 2) then
+			ret := 10;
+		else
+			if (DAT_WIDTH < 19) then
+				ret := 13;
+			else
+				ret := 16;
+			end if;
+		end if;
+	end if;
+	return ret;
+end find_delay;
+
+constant ADD_DELAY	: integer:=find_delay;
+
 signal dsp_pp			: std_logic_vector(DAT_WIDTH+1 downto 0);
-signal vldx				: std_logic;
-signal ena_zz			: std_logic_vector(DAT_WIDTH+7 downto 0);
+-- signal vldx				: std_logic;
+signal ena_zz			: std_logic_vector(ADD_DELAY downto 0);
 
 attribute USE_DSP : string;
 attribute USE_DSP of dsp_pp : signal is "YES";
@@ -135,21 +171,69 @@ begin
 	end if;
 end process;
 
----------------- Twiddle part 1 ----------------
-xCRD1: entity work.cordic_dds
-    generic map (
-        DATA_WIDTH	=> DAT_WIDTH,
-        PHASE_WIDTH	=> PHI_WIDTH
-    )	
-    port map (		   
-        RESET	=> reset,
-        CLK		=> clk,
-        PH_IN	=> ph_in1,
-        PH_EN	=> ENABLE,
-		DT_COS	=> cos1, 
-		DT_VAL	=> vldx
-    );
+---------------- Cordic scheme ----------------
+xUSE_CORD: if (SIN_TYPE = "CORDIC") generate
+	---------------- Twiddle part 1 ----------------
+	xCRD1: entity work.cordic_dds
+		generic map (
+			DATA_WIDTH	=> DAT_WIDTH,
+			PHASE_WIDTH	=> PHI_WIDTH
+		)	
+		port map (
+			RESET       => reset,
+			CLK         => clk,
+			PH_IN       => ph_in1,
+			PH_EN       => ENABLE,
+			DT_COS      => cos1 
+		);	
+	---------------- Twiddle part 2 ----------------
+	xCRD2: entity work.cordic_dds
+		generic map (
+			DATA_WIDTH	=> DAT_WIDTH,
+			PHASE_WIDTH	=> PHI_WIDTH
+		)	
+		port map (
+			RESET       => reset,
+			CLK         => clk,
+			PH_IN       => ph_in2,
+			PH_EN       => ENABLE,
+			DT_COS      => cos2 
+		);	
+end generate;
 
+---------------- Taylor series scheme ----------------
+xUSE_TAY: if (SIN_TYPE = "TAYLOR") generate
+	---------------- Twiddle part 1 ----------------
+	xTAY1: entity work.taylor_sincos
+		generic map (
+			XSERIES     => XSERIES,
+			LUT_SIZE    => LUT_SIZE,
+			DATA_WIDTH  => DAT_WIDTH,
+			PHASE_WIDTH => PHI_WIDTH
+		)	
+		port map (
+			RST         => reset,
+			CLK         => clk,
+			PHI_ENA     => ENABLE,
+			OUT_COS     => cos1
+		);
+	---------------- Twiddle part 2 ----------------	
+	xTAY2: entity work.taylor_sincos
+		generic map (
+			XSERIES     => XSERIES,
+			LUT_SIZE    => LUT_SIZE,
+			DATA_WIDTH  => DAT_WIDTH,
+			PHASE_WIDTH => PHI_WIDTH-1
+		)	
+		port map (
+			RST         => reset,
+			CLK         => clk,
+			PHI_ENA     => ENABLE,
+			OUT_COS     => cos2
+		);	
+end generate;
+
+---------------- Weight constants ----------------
 xMLT1: entity work.int_multNxN_dsp48
 	generic map ( DTW => DAT_WIDTH)
 	port map (
@@ -159,22 +243,6 @@ xMLT1: entity work.int_multNxN_dsp48
 		CLK		=> clk,
 		RST		=> reset
 	);	
-
----------------- Twiddle part 2 ----------------
-xCRD2: entity work.cordic_dds
-    generic map (
-        DATA_WIDTH	=> DAT_WIDTH,
-        PHASE_WIDTH	=> PHI_WIDTH
-    )	
-    port map (		   
-        RESET	=> reset,
-        CLK		=> clk,
-        PH_IN	=> ph_in2,
-        PH_EN	=> ENABLE,
-		DT_COS	=> cos2, 
-		DT_VAL	=> vldx
-    );
-
 
 xMLT2: entity work.int_multNxN_dsp48
 	generic map ( DTW => DAT_WIDTH)

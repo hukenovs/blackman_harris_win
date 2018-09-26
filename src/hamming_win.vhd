@@ -58,21 +58,25 @@ use ieee.std_logic_signed.all;
 -- use unisim.vcomponents.DSP48E2;
 
 entity hamming_win is
-	generic(
-		TD			: time:=0.5ns;		--! Time delay
-		PHI_WIDTH	: integer:=10;		--! Signal period = 2^PHI_WIDTH
-		DAT_WIDTH	: integer:=16		--! Output data width
+	generic (
+		TD			: time:=0.5ns;      --! Time delay
+		PHI_WIDTH	: integer:=10;      --! Signal period = 2^PHI_WIDTH
+		DAT_WIDTH	: integer:=16;      --! Output data width		
+		SIN_TYPE    : string:="CORDIC"; --! Sine generator type: CORDIC / TAYLOR
+		---- For Taylor series only ----
+		LUT_SIZE    : integer:= 9;      --! ROM depth for sin/cos (must be less than PHASE_WIDTH)
+        XSERIES     : string:="ULTRA"   --! for 6/7 series: "7SERIES"; for ULTRASCALE: "ULTRA";
 	);
-	port(
-		RESET  		: in  std_logic;	--! Global reset 
-		CLK 		: in  std_logic;	--! System clock 
+	port (
+		RESET       : in  std_logic; --! Global reset 
+		CLK         : in  std_logic; --! System clock 
 
-		AA0			: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A0
-		AA1			: in  std_logic_vector(DAT_WIDTH-1 downto 0); -- Constant A1
+		AA0         : in  std_logic_vector(DAT_WIDTH-1 downto 0); --! Constant A0
+		AA1         : in  std_logic_vector(DAT_WIDTH-1 downto 0); --! Constant A1
 
-		ENABLE		: in  std_logic;	--! Input data enable block = NFFT clocks
-		DT_WIN		: out std_logic_vector(DAT_WIDTH-1 downto 0);	--! Output (cos)	
-		DT_VLD		: out std_logic		--! Output data valid	
+		ENABLE      : in  std_logic; --! Input data enable block = NFFT clocks
+		DT_WIN      : out std_logic_vector(DAT_WIDTH-1 downto 0); --! Output (cos)	
+		DT_VLD      : out std_logic --! Output data valid	
 	);
 end hamming_win;
 
@@ -95,8 +99,31 @@ signal dsp_r1			: std_logic_vector(DAT_WIDTH downto 0);
 signal dsp_pp			: std_logic_vector(DAT_WIDTH downto 0);
 
 ---------------- DSP48 signals ----------------
-signal vldx				: std_logic;
-signal ena_zz			: std_logic_vector(DAT_WIDTH+7 downto 0);
+
+---- Addition delay ----
+function find_delay return integer is
+	variable ret    : integer:=0;
+begin
+	if (SIN_TYPE = "CORDIC") then
+		ret := DAT_WIDTH+7;
+	elsif (SIN_TYPE = "TAYLOR") then
+		if (PHI_WIDTH - LUT_SIZE <= 2) then
+			ret := 10;
+		else
+			if (DAT_WIDTH < 19) then
+				ret := 13;
+			else
+				ret := 16;
+			end if;
+		end if;
+	end if;
+	return ret;
+end find_delay;
+
+constant ADD_DELAY	: integer:=find_delay;
+
+-- signal vldx				: std_logic;
+signal ena_zz			: std_logic_vector(ADD_DELAY downto 0);
 
 attribute USE_DSP : string;
 attribute USE_DSP of dsp_pp : signal is "YES";
@@ -122,19 +149,36 @@ begin
 end process;
 
 ---------------- Twiddle part 1 ----------------
-xCRD1: entity work.cordic_dds
-    generic map (
-        DATA_WIDTH	=> DAT_WIDTH,
-        PHASE_WIDTH	=> PHI_WIDTH
-    )	
-    port map (		   
-        RESET	=> reset,
-        CLK		=> clk,
-        PH_IN	=> ph_in1,
-        PH_EN	=> ENABLE,
-		DT_COS	=> cos1, 
-		DT_VAL	=> vldx
-    );
+xUSE_CORD: if (SIN_TYPE = "CORDIC") generate
+	xCRD1: entity work.cordic_dds
+		generic map (
+			DATA_WIDTH	=> DAT_WIDTH,
+			PHASE_WIDTH	=> PHI_WIDTH
+		)	
+		port map (
+			RESET       => reset,
+			CLK         => clk,
+			PH_IN       => ph_in1,
+			PH_EN       => ENABLE,
+			DT_COS      => cos1 
+		);
+end generate;
+
+xUSE_TAY: if (SIN_TYPE = "TAYLOR") generate
+	xTAY1: entity work.taylor_sincos
+		generic map (
+			XSERIES     => XSERIES,
+			LUT_SIZE    => LUT_SIZE,
+			DATA_WIDTH  => DAT_WIDTH,
+			PHASE_WIDTH => PHI_WIDTH
+		)	
+		port map (
+			RST         => reset,
+			CLK         => clk,
+			PHI_ENA     => ENABLE,
+			OUT_COS     => cos1
+		);
+end generate;
 
 xMLT1: entity work.int_multNxN_dsp48
 	generic map ( DTW => DAT_WIDTH)

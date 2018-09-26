@@ -54,12 +54,12 @@ use ieee.std_logic_signed.all;
 -- use unisim.vcomponents.DSP48E2;
 
 entity bh_win_4term is
-	generic(
-		TD			: time:=0.5ns;		--! Time delay
-		PHI_WIDTH	: integer:=10;		--! Signal period = 2^PHI_WIDTH
-		DAT_WIDTH	: integer:=16		--! Output data width
+	generic (
+		TD			: time:=0.5ns;      --! Time delay
+		PHI_WIDTH	: integer:=10;      --! Signal period = 2^PHI_WIDTH
+		DAT_WIDTH	: integer:=16       --! Output data width
 	);
-	port(
+	port (
 		RESET  		: in  std_logic;	--! Global reset 
 		CLK 		: in  std_logic;	--! System clock 
 
@@ -112,7 +112,7 @@ signal dsp_r3			: std_logic_vector(DAT_WIDTH downto 0);
 signal dsp_p1			: std_logic_vector(DAT_WIDTH downto 0);
 signal dsp_p2			: std_logic_vector(DAT_WIDTH downto 0);
 signal dsp_pp			: std_logic_vector(DAT_WIDTH+1 downto 0);
-signal vldx				: std_logic;
+-- signal vldx				: std_logic;
 signal ena_zz			: std_logic_vector(DAT_WIDTH+8 downto 0);
 
 attribute USE_DSP : string;
@@ -151,18 +151,43 @@ end process;
 
 ---------------- Twiddle part 1 ----------------
 xCRD1: entity work.cordic_dds
-    generic map (
-        DATA_WIDTH	=> DAT_WIDTH,
-        PHASE_WIDTH	=> PHI_WIDTH
-    )	
-    port map (		   
-        RESET	=> reset,
-        CLK		=> clk,
-        PH_IN	=> ph_in1,
-        PH_EN	=> ENABLE,
-		DT_COS	=> cos1, 
-		DT_VAL	=> vldx
-    );
+	generic map (
+		DATA_WIDTH	=> DAT_WIDTH,
+		PHASE_WIDTH	=> PHI_WIDTH
+	)	
+	port map (
+		RESET       => reset,
+		CLK         => clk,
+		PH_IN       => ph_in1,
+		PH_EN       => ENABLE,
+		DT_COS      => cos1 
+	);	
+---------------- Twiddle part 2 ----------------
+xCRD2: entity work.cordic_dds
+	generic map (
+		DATA_WIDTH	=> DAT_WIDTH,
+		PHASE_WIDTH	=> PHI_WIDTH
+	)	
+	port map (
+		RESET       => reset,
+		CLK         => clk,
+		PH_IN       => ph_in2,
+		PH_EN       => ENABLE,
+		DT_COS      => cos2 
+	);	
+---------------- Twiddle part 3 ----------------
+xCRD3: entity work.cordic_dds
+	generic map (
+		DATA_WIDTH	=> DAT_WIDTH,
+		PHASE_WIDTH	=> PHI_WIDTH
+	)	
+	port map (
+		RESET       => reset,
+		CLK         => clk,
+		PH_IN       => ph_in3,
+		PH_EN       => ENABLE,
+		DT_COS      => cos3 
+	);
 
 xMLT1: entity work.int_multNxN_dsp48
 	generic map ( DTW => DAT_WIDTH)
@@ -174,22 +199,6 @@ xMLT1: entity work.int_multNxN_dsp48
 		RST		=> reset
 	);	
 
----------------- Twiddle part 2 ----------------
-xCRD2: entity work.cordic_dds
-    generic map (
-        DATA_WIDTH	=> DAT_WIDTH,
-        PHASE_WIDTH	=> PHI_WIDTH
-    )	
-    port map (		   
-        RESET	=> reset,
-        CLK		=> clk,
-        PH_IN	=> ph_in2,
-        PH_EN	=> ENABLE,
-		DT_COS	=> cos2, 
-		DT_VAL	=> vldx
-    );
-
-
 xMLT2: entity work.int_multNxN_dsp48
 	generic map ( DTW => DAT_WIDTH)
 	port map (
@@ -199,21 +208,6 @@ xMLT2: entity work.int_multNxN_dsp48
 		CLK		=> clk,
 		RST		=> reset
 	);		
-	
----------------- Twiddle part 3 ----------------	
-xCRD3: entity work.cordic_dds
-    generic map (
-        DATA_WIDTH	=> DAT_WIDTH,
-        PHASE_WIDTH	=> PHI_WIDTH
-    )	
-    port map (		   
-        RESET	=> reset,
-        CLK		=> clk,
-        PH_IN	=> ph_in3,
-        PH_EN	=> ENABLE,
-		DT_COS	=> cos3, 
-		DT_VAL	=> vldx
-    );
 
 xMLT3: entity work.int_multNxN_dsp48
 	generic map ( DTW => DAT_WIDTH)
