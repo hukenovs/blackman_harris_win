@@ -111,74 +111,65 @@ begin
 	return ret_val;
 end function fn_log2;
 
-
 ---------------- Constant declaration ----------------
 function fn_magn return std_logic_vector is
 	variable ret_val : real := 0.0; 
 	-- variable tmp_val : real := 1.0; 
-	constant sig_val : std_logic_vector(DATA_WIDTH+2 downto 0):=(DATA_WIDTH+2 => '0', others => '1'); 
+	constant sig_val : std_logic_vector(DATA_WIDTH+1 downto 0):=(DATA_WIDTH+1 => '0', others => '1'); 
 	variable sig_mgn : std_logic_vector(31 downto 0); 
-	variable sig_ret : std_logic_vector(DATA_WIDTH+2+32 downto 0); 
-begin					
-	-- for ii in 0 to DATA_WIDTH+2 loop
-		-- ret_val := SQRT(1.0+2.0**(-2*ii));
-		-- tmp_val := tmp_val*ret_val;     
-	-- end loop;
-	-- ret_val := 2.0**31/(tmp_val+0.0000001); -- equal ~1.64676025812107...
-	
-	if (DATA_WIDTH < 12) then
-		ret_val := 1.65;
-	elsif ((DATA_WIDTH >= 12) and (DATA_WIDTH < 22)) then
-		ret_val := 1.6468;
-	elsif ((DATA_WIDTH >= 22) and (DATA_WIDTH < 32)) then	
-		ret_val := 1.646765;
-	else
-		ret_val := 1.6467603;
-	end if;
-	
-	ret_val := 2.0**31/ret_val; -- equal ~1.6467...
+	variable sig_ret : std_logic_vector(DATA_WIDTH+1+32 downto 0); 
+begin
+	ret_val := 2.0**30/1.64676025812106541; --1.64676025812107; -- equal ~1.6467...
 	sig_mgn := conv_std_logic_vector(integer(ret_val), 32);
 	sig_ret := sig_mgn * sig_val;
 
-	return sig_ret(DATA_WIDTH+2+31 downto 31);
+	return sig_ret(DATA_WIDTH+1+31 downto 31);
 end function;
 
-constant GAIN			: std_logic_vector(DATA_WIDTH+2 downto 0):=fn_magn;
-
+constant GAIN			: std_logic_vector(DATA_WIDTH+1 downto 0):=fn_magn;
 constant SHIFT_LEN		: integer:=fn_log2(DATA_WIDTH)+1;
--- constant SHIFT_PHI		: integer:=DATA_WIDTH-PHASE_WIDTH+1;
 
 ---------------- ROM: Look up table for CORDIC ----------------
 ---- Result of [ATAN(2^-i) * (2^32/360)] rounded and converted to HEX
-type rom_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
+type rom_array is array (0 to 31) of std_logic_vector(31 downto 0);
 
-function CALC_ATAN return rom_array is
-	variable ret    : rom_array;
+constant ROM_LUT : rom_array := (
+		x"40000000" ,x"25C80A3B" ,x"13F670B7" ,x"0A2223A8" ,x"05161A86" ,x"028BAFC3",
+		x"0145EC3D" ,x"00A2F8AA" ,x"00517CA7" ,x"0028BE5D" ,x"00145F30" ,x"000A2F98",
+		x"000517CC" ,x"00028BE6" ,x"000145F3" ,x"0000A2FA" ,x"0000517D" ,x"000028BE",
+		x"0000145F" ,x"00000A30" ,x"00000518" ,x"0000028C" ,x"00000146" ,x"000000A3",
+		x"00000051" ,x"00000029" ,x"00000014" ,x"0000000A" ,x"00000005" ,x"00000003",
+		x"00000001" ,x"00000000"
+	);
+
+type rom_atan is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
+
+function func_atan return rom_atan is
+	variable ret    : rom_atan;
 begin					
-	for ii in 0 to DATA_WIDTH-2 loop
-		ret(ii) := CONV_STD_LOGIC_VECTOR(integer(ROUND(ARCTAN(2.0**(-ii)) * (2.0**DATA_WIDTH)/(MATH_PI))), DATA_WIDTH);
+	for ii in 0 to DATA_WIDTH-1 loop
+		ret(ii) := ROM_LUT(ii)(31 downto (32-DATA_WIDTH));
 	end loop;
-	ret(DATA_WIDTH-1) := (others=>'0');
 	return ret;
-end function CALC_ATAN;
+end function func_atan;
 
-constant ROM_NEW	: rom_array := CALC_ATAN;
+constant ROM_TABLE : rom_atan := func_atan;
 
 ---------------- Signal declaration ----------------
-type dat_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+2 downto 0);
+type dat_array is array (0 to DATA_WIDTH) of std_logic_vector(DATA_WIDTH+1 downto 0);
 type phi_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
 
 signal sigX             : dat_array := (others => (others => '0'));
 signal sigY             : dat_array := (others => (others => '0'));
 signal sigZ             : phi_array := (others => (others => '0'));
 
-signal init_x           : std_logic_vector(DATA_WIDTH+2 downto 0);
-signal init_y           : std_logic_vector(DATA_WIDTH+2 downto 0);
+signal init_x           : std_logic_vector(DATA_WIDTH+1 downto 0);
+signal init_y           : std_logic_vector(DATA_WIDTH+1 downto 0);
 signal init_t           : std_logic_vector(PHASE_WIDTH-1 downto 0);
 signal init_z           : std_logic_vector(DATA_WIDTH-1 downto 0);
 
 signal quadrant         : std_logic_vector(1 downto 0);
-signal dt_vld           : std_logic_vector(DATA_WIDTH-1 downto 0);
+signal dt_vld           : std_logic_vector(DATA_WIDTH downto 0);
 
 begin
 
@@ -266,21 +257,21 @@ begin
 		sigY(0) <= init_y; 
 		sigZ(0) <= init_z;
 		---- calculate sine & cosine ----
-        xl: for ii in 0 to DATA_WIDTH-2 loop
+        xl: for ii in 0 to DATA_WIDTH-1 loop
             if (sigZ(ii)(sigZ(ii)'left) = '0') then
-                sigX(ii+1) <= sigX(ii) + STD_LOGIC_VECTOR(SHR(SIGNED(sigY(ii)), CONV_UNSIGNED(ii, SHIFT_LEN)));
-                sigY(ii+1) <= sigY(ii) - STD_LOGIC_VECTOR(SHR(SIGNED(sigX(ii)), CONV_UNSIGNED(ii, SHIFT_LEN)));
+                sigX(ii+1) <= sigX(ii) + sigY(ii)(DATA_WIDTH+1 downto ii);
+                sigY(ii+1) <= sigY(ii) - sigX(ii)(DATA_WIDTH+1 downto ii);
             else
-                sigX(ii+1) <= sigX(ii) - STD_LOGIC_VECTOR(SHR(SIGNED(sigY(ii)), CONV_UNSIGNED(ii, SHIFT_LEN)));
-                sigY(ii+1) <= sigY(ii) + STD_LOGIC_VECTOR(SHR(SIGNED(sigX(ii)), CONV_UNSIGNED(ii, SHIFT_LEN)));
+                sigX(ii+1) <= sigX(ii) - sigY(ii)(DATA_WIDTH+1 downto ii);
+                sigY(ii+1) <= sigY(ii) + sigX(ii)(DATA_WIDTH+1 downto ii);
             end if;
         end loop;
 		---- calculate phase ----
         xp: for ii in 0 to DATA_WIDTH-2 loop
             if (sigZ(ii)(sigZ(ii)'left) = '1') then
-                sigZ(ii+1) <= sigZ(ii) + ROM_NEW(ii);
+                sigZ(ii+1) <= sigZ(ii) + ROM_TABLE(ii);
             else
-                sigZ(ii+1) <= sigZ(ii) - ROM_NEW(ii);
+                sigZ(ii+1) <= sigZ(ii) - ROM_TABLE(ii);
             end if;
         end loop;
     end if;
@@ -289,8 +280,8 @@ end process;
 dt_vld <= dt_vld(dt_vld'left-1 downto 0) & ph_en when rising_edge(clk);
 
 ---- Output data ----
-dt_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+2 downto 2+1) when rising_edge(clk);
-dt_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+2 downto 2+1) when rising_edge(clk);
+dt_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+1 downto 1+1) when rising_edge(clk);
+dt_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+1 downto 1+1) when rising_edge(clk);
 dt_val <= dt_vld(dt_vld'left) when rising_edge(clk);
 
 end cordic_dds;
