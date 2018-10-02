@@ -74,12 +74,6 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
 use ieee.std_logic_signed.all;
 
-use ieee.math_real.all;
-
--- use ieee.MATH_REAL.MATH_PI;
--- use ieee.MATH_REAL.ROUND;
--- use ieee.MATH_REAL.ARCTAN;
-
 entity cordic_dds is
 	generic (
 		PHASE_WIDTH    : integer := 16;-- Phase width: sets period of signal
@@ -98,36 +92,9 @@ end cordic_dds;
 
 architecture cordic_dds of cordic_dds is
 
----------------- Log2(N) function ----------------
-function fn_log2( i : natural) return integer is
-	variable temp    : integer := i;
-	variable ret_val : integer := 0; 
-begin					
-	while temp > 1 loop
-		ret_val := ret_val + 1;
-		temp    := temp / 2;     
-	end loop;
-
-	return ret_val;
-end function fn_log2;
-
 ---------------- Constant declaration ----------------
-function fn_magn return std_logic_vector is
-	variable ret_val : real := 0.0; 
-	-- variable tmp_val : real := 1.0; 
-	constant sig_val : std_logic_vector(DATA_WIDTH+1 downto 0):=(DATA_WIDTH+1 => '0', others => '1'); 
-	variable sig_mgn : std_logic_vector(31 downto 0); 
-	variable sig_ret : std_logic_vector(DATA_WIDTH+1+32 downto 0); 
-begin
-	ret_val := 2.0**30/1.64676025812106541; --1.64676025812107; -- equal ~1.6467...
-	sig_mgn := conv_std_logic_vector(integer(ret_val), 32);
-	sig_ret := sig_mgn * sig_val;
-
-	return sig_ret(DATA_WIDTH+1+31 downto 31);
-end function;
-
-constant GAIN			: std_logic_vector(DATA_WIDTH+1 downto 0):=fn_magn;
-constant SHIFT_LEN		: integer:=fn_log2(DATA_WIDTH)+1;
+constant GAIN48			: std_logic_vector(47 downto 0):=x"4DBA76D421AF";
+constant GAIN			: std_logic_vector(DATA_WIDTH+1 downto 0):='0' & GAIN48(47 downto 47-(DATA_WIDTH+1)+1);
 
 ---------------- ROM: Look up table for CORDIC ----------------
 ---- Result of [ATAN(2^-i) * (2^32/360)] rounded and converted to HEX
@@ -142,12 +109,12 @@ constant ROM_LUT : rom_array := (
 		x"00000001" ,x"00000000"
 	);
 
-type rom_atan is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
+type rom_atan is array (0 to DATA_WIDTH-2) of std_logic_vector(DATA_WIDTH-1 downto 0);
 
 function func_atan return rom_atan is
 	variable ret    : rom_atan;
 begin					
-	for ii in 0 to DATA_WIDTH-1 loop
+	for ii in 0 to DATA_WIDTH-2 loop
 		ret(ii) := ROM_LUT(ii)(31 downto (32-DATA_WIDTH));
 	end loop;
 	return ret;
@@ -156,7 +123,7 @@ end function func_atan;
 constant ROM_TABLE : rom_atan := func_atan;
 
 ---------------- Signal declaration ----------------
-type dat_array is array (0 to DATA_WIDTH) of std_logic_vector(DATA_WIDTH+1 downto 0);
+type dat_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+1 downto 0);
 type phi_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
 
 signal sigX             : dat_array := (others => (others => '0'));
@@ -247,17 +214,16 @@ end process;
 pr_crd: process(clk, reset)
 begin
     if (reset = '1') then
-        for ii in 0 to (DATA_WIDTH-1) loop
-			sigX(ii) <= (others => '0');
-			sigY(ii) <= (others => '0');
-			sigZ(ii) <= (others => '0');
-        end loop;
+        ---- Reset sine / cosine / angle vector ----
+		sigX <= (others => (others => '0'));
+		sigY <= (others => (others => '0'));
+		sigZ <= (others => (others => '0'));		
     elsif rising_edge(clk) then
 		sigX(0) <= init_x;
 		sigY(0) <= init_y; 
 		sigZ(0) <= init_z;
 		---- calculate sine & cosine ----
-        xl: for ii in 0 to DATA_WIDTH-1 loop
+        xl: for ii in 0 to DATA_WIDTH-2 loop
             if (sigZ(ii)(sigZ(ii)'left) = '0') then
                 sigX(ii+1) <= sigX(ii) + sigY(ii)(DATA_WIDTH+1 downto ii);
                 sigY(ii+1) <= sigY(ii) - sigX(ii)(DATA_WIDTH+1 downto ii);
