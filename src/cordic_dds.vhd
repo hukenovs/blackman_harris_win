@@ -76,8 +76,8 @@ use ieee.std_logic_signed.all;
 
 entity cordic_dds is
 	generic (
-		PHASE_WIDTH    : integer := 16;-- Phase width: sets period of signal
-		DATA_WIDTH     : integer := 16 -- Output width: sets magnitude of signal
+		PHASE_WIDTH    : integer := 20;-- Phase width: sets period of signal
+		DATA_WIDTH     : integer := 24 -- Output width: sets magnitude of signal
 	);
 	port (
 		CLK           : in  std_logic; --! Clock source
@@ -94,28 +94,36 @@ architecture cordic_dds of cordic_dds is
 
 ---------------- Constant declaration ----------------
 constant GAIN48			: std_logic_vector(47 downto 0):=x"4DBA76D421AF";
-constant GAIN			: std_logic_vector(DATA_WIDTH+1 downto 0):='0' & GAIN48(47 downto 47-(DATA_WIDTH+1)+1);
+-- constant GAIN			: std_logic_vector(DATA_WIDTH+4-1 downto 0):='0' & GAIN48(47 downto 47-(DATA_WIDTH+4-1)+1);
+constant GAIN			: std_logic_vector(DATA_WIDTH+4-1 downto 0):="000" & GAIN48(47 downto 47-(DATA_WIDTH+4-1)+3);
 
 ---------------- ROM: Look up table for CORDIC ----------------
----- Result of [ATAN(2^-i) * (2^32/360)] rounded and converted to HEX
-type rom_array is array (0 to 31) of std_logic_vector(31 downto 0);
+---- Result of [ATAN(2^-i) * (2^47/MATH_PI)] rounded and converted to HEX
+type rom_array is array (0 to 47) of std_logic_vector(47 downto 0);
 
 constant ROM_LUT : rom_array := (
-		x"40000000" ,x"25C80A3B" ,x"13F670B7" ,x"0A2223A8" ,x"05161A86" ,x"028BAFC3",
-		x"0145EC3D" ,x"00A2F8AA" ,x"00517CA7" ,x"0028BE5D" ,x"00145F30" ,x"000A2F98",
-		x"000517CC" ,x"00028BE6" ,x"000145F3" ,x"0000A2FA" ,x"0000517D" ,x"000028BE",
-		x"0000145F" ,x"00000A30" ,x"00000518" ,x"0000028C" ,x"00000146" ,x"000000A3",
-		x"00000051" ,x"00000029" ,x"00000014" ,x"0000000A" ,x"00000005" ,x"00000003",
-		x"00000001" ,x"00000000"
+		x"400000000000", x"25C80A3B3BE6", x"13F670B6BDC7", x"0A2223A83BBB", 
+		x"05161A861CB1", x"028BAFC2B209", x"0145EC3CB850", x"00A2F8AA23A9", 
+		x"00517CA68DA2", x"0028BE5D7661", x"00145F300123", x"000A2F982950", 
+		x"000517CC19C0", x"00028BE60D83", x"000145F306D6", x"0000A2F9836D", 
+		x"0000517CC1B7", x"000028BE60DC", x"0000145F306E", x"00000A2F9837", 
+		x"00000517CC1B", x"0000028BE60E", x"00000145F307", x"000000A2F983", 
+		x"000000517CC2", x"00000028BE61", x"000000145F30", x"0000000A2F98", 
+		x"0000000517CC", x"000000028BE6", x"0000000145F3", x"00000000A2FA", 
+		x"00000000517D", x"0000000028BE", x"00000000145F", x"000000000A30", 
+		x"000000000518", x"00000000028C", x"000000000146", x"0000000000A3", 
+		x"000000000051", x"000000000029", x"000000000014", x"00000000000A", 
+		x"000000000005", x"000000000003", x"000000000001", x"000000000000"
 	);
 
-type rom_atan is array (0 to DATA_WIDTH-2) of std_logic_vector(DATA_WIDTH-1 downto 0);
+type rom_atan is array (0 to DATA_WIDTH-2) of std_logic_vector(DATA_WIDTH+4-1 downto 0);
 
 function func_atan return rom_atan is
 	variable ret    : rom_atan;
 begin					
 	for ii in 0 to DATA_WIDTH-2 loop
-		ret(ii) := ROM_LUT(ii)(31 downto (32-DATA_WIDTH));
+		ret(ii)(DATA_WIDTH+4-2 downto 0) := ROM_LUT(ii)(47 downto (47-(DATA_WIDTH+4-2)));
+		ret(ii)(DATA_WIDTH+4-1 downto DATA_WIDTH+4-1) := (others => '0');
 	end loop;
 	return ret;
 end function func_atan;
@@ -123,94 +131,65 @@ end function func_atan;
 constant ROM_TABLE : rom_atan := func_atan;
 
 ---------------- Signal declaration ----------------
-type dat_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+1 downto 0);
-type phi_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
+type dat_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+4-1 downto 0);
+type phi_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+4-1 downto 0);
 
 signal sigX             : dat_array := (others => (others => '0'));
 signal sigY             : dat_array := (others => (others => '0'));
 signal sigZ             : phi_array := (others => (others => '0'));
 
-signal init_x           : std_logic_vector(DATA_WIDTH+1 downto 0);
-signal init_y           : std_logic_vector(DATA_WIDTH+1 downto 0);
+signal init_x           : std_logic_vector(DATA_WIDTH+4-1 downto 0);
+signal init_y           : std_logic_vector(DATA_WIDTH+4-1 downto 0);
 signal init_t           : std_logic_vector(PHASE_WIDTH-1 downto 0);
-signal init_z           : std_logic_vector(DATA_WIDTH-1 downto 0);
+signal init_z           : std_logic_vector(DATA_WIDTH+4-1 downto 0);
 
 signal quadrant         : std_logic_vector(1 downto 0);
-signal dt_vld           : std_logic_vector(DATA_WIDTH downto 0);
+signal quadz1         	: std_logic_vector(DATA_WIDTH downto 0);
+signal quadz2         	: std_logic_vector(DATA_WIDTH downto 0);
+signal dt_vld           : std_logic_vector(DATA_WIDTH-1 downto 0);
+
+signal dat_sin          : std_logic_vector(DATA_WIDTH-1 downto 0);
+signal dat_cos          : std_logic_vector(DATA_WIDTH-1 downto 0);
+
+function get_min return integer is
+	variable ret    : integer;
+begin					
+	if (PHASE_WIDTH <= DATA_WIDTH) then
+		ret := PHASE_WIDTH;
+	else
+		ret := DATA_WIDTH+4;
+	end if;
+	return ret;
+end function get_min;
+constant MIN_VAL		: integer:=get_min;
 
 begin
 
 ---------------------------------------------------------------------
 ---------------- Convert phase width  -------------------------------
 ---------------------------------------------------------------------
-xGEN_ZERO: if (DATA_WIDTH-PHASE_WIDTH+1 = 0) generate
-	init_z <= init_t(DATA_WIDTH-1 downto 0);
-end generate;
 
-xGEN_MORE: if (DATA_WIDTH-PHASE_WIDTH+1 > 0) generate
-	constant ZEROS : std_logic_vector(DATA_WIDTH-PHASE_WIDTH downto 0):=(others=>'0');
-begin
-	init_z <= init_t(PHASE_WIDTH-2 downto 0) & ZEROS;
-end generate;
-
-xGEN_LESS: if (DATA_WIDTH-PHASE_WIDTH+1 < 0) generate
-	init_z <= init_t(PHASE_WIDTH-2 downto (PHASE_WIDTH-DATA_WIDTH-1));
-end generate;
-
+init_z(4-1 downto 0) <= (others => '0');
+init_z(DATA_WIDTH+4-1 downto 4) <= init_t(PHASE_WIDTH-1 downto PHASE_WIDTH - DATA_WIDTH);
+	
 ---------------------------------------------------------------------
 ---------------- Calculate Quadrant: two MSBs of input phase --------
 ---------------------------------------------------------------------
-quadrant <= ph_in(ph_in'left downto ph_in'left-1);
-
-pr_phi: process(clk) is
-begin
-	if rising_edge(clk) then
-		if (reset = '1') then		
-			init_t <= (others => '0');
-		else
-			if (ph_en = '1') then
-				case quadrant is
-					when "00" | "11" => init_t <= ph_in;
-					when "01"        => init_t <= ("00" & ph_in(ph_in'left-2 downto 0));
-					when "10"        => init_t <= ("11" & ph_in(ph_in'left-2 downto 0));
-					when others      => null;
-				end case;
-			end if;
-		end if;
-	end if;
-end process;
+quadz1 <= quadz1(DATA_WIDTH-1 downto 0) & ph_in(PHASE_WIDTH-1) when rising_edge(clk);
+quadz2 <= quadz2(DATA_WIDTH-1 downto 0) & ph_in(PHASE_WIDTH-2) when rising_edge(clk);
+quadrant <= quadz1(DATA_WIDTH) & quadz2(DATA_WIDTH);
 
 ---------------------------------------------------------------------
 ---------------- Registered: initial values for X, Y, Z -------------
 ---------------------------------------------------------------------
-pr_xy: process(clk) is
-begin
-	if rising_edge(clk) then
-		if (reset = '1') then		
-			init_x <= (others => '0');
-			init_y <= (others => '0');
-		else
-			if (ph_en = '1') then
-				case quadrant is
-					when "00" | "11" =>
-						init_x <= GAIN;
-						init_y <= (others => '0');
-					when "01" =>
-						init_x <= (others => '0');
-						init_y <= not(GAIN) + '1';
-					when "10" =>
-						init_x <= (others => '0');
-						init_y <= GAIN;
-					when others => null;
-				end case;
-			end if;
-		end if;
-	end if;
-end process;
+init_x <= GAIN;
+init_y <= (others => '0');
+init_t <= ("00" & ph_in(ph_in'left-2 downto 0));
 
 ---------------------------------------------------------------------
 ---------------- Compute Angle array and X/Y ------------------------ 
 ---------------------------------------------------------------------
+
 pr_crd: process(clk, reset)
 begin
     if (reset = '1') then
@@ -223,17 +202,17 @@ begin
 		sigY(0) <= init_y; 
 		sigZ(0) <= init_z;
 		---- calculate sine & cosine ----
-        xl: for ii in 0 to DATA_WIDTH-2 loop
-            if (sigZ(ii)(sigZ(ii)'left) = '0') then
-                sigX(ii+1) <= sigX(ii) + sigY(ii)(DATA_WIDTH+1 downto ii);
-                sigY(ii+1) <= sigY(ii) - sigX(ii)(DATA_WIDTH+1 downto ii);
+        lpXY: for ii in 0 to DATA_WIDTH-2 loop
+            if (sigZ(ii)(sigZ(ii)'left) = '1') then
+                sigX(ii+1) <= sigX(ii) + sigY(ii)(DATA_WIDTH+4-1 downto ii);
+                sigY(ii+1) <= sigY(ii) - sigX(ii)(DATA_WIDTH+4-1 downto ii);
             else
-                sigX(ii+1) <= sigX(ii) - sigY(ii)(DATA_WIDTH+1 downto ii);
-                sigY(ii+1) <= sigY(ii) + sigX(ii)(DATA_WIDTH+1 downto ii);
+                sigX(ii+1) <= sigX(ii) - sigY(ii)(DATA_WIDTH+4-1 downto ii);
+                sigY(ii+1) <= sigY(ii) + sigX(ii)(DATA_WIDTH+4-1 downto ii);
             end if;
         end loop;
 		---- calculate phase ----
-        xp: for ii in 0 to DATA_WIDTH-2 loop
+        lpZ: for ii in 0 to DATA_WIDTH-2 loop
             if (sigZ(ii)(sigZ(ii)'left) = '1') then
                 sigZ(ii+1) <= sigZ(ii) + ROM_TABLE(ii);
             else
@@ -246,8 +225,35 @@ end process;
 dt_vld <= dt_vld(dt_vld'left-1 downto 0) & ph_en when rising_edge(clk);
 
 ---- Output data ----
-dt_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+1 downto 1+1) when rising_edge(clk);
-dt_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+1 downto 1+1) when rising_edge(clk);
+pr_xy: process(clk) is
+begin
+	if rising_edge(clk) then
+		if (reset = '1') then		
+			dt_sin <= (others => '0');
+			dt_cos <= (others => '0');
+		else
+			case quadrant is
+				when "00" =>
+					dt_sin <= dat_sin;
+					dt_cos <= dat_cos;
+				when "01" =>
+					dt_sin <= dat_cos;
+					dt_cos <= not(dat_sin) + '1';
+				when "10" =>
+					dt_sin <= not(dat_sin) + '1';
+					dt_cos <= not(dat_cos) + '1';
+				when "11" =>
+					dt_sin <= not(dat_cos) + '1';
+					dt_cos <= dat_sin;		
+				when others => null;
+			end case;
+		end if;
+	end if;
+end process;
+
+dat_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2) when rising_edge(clk);
+dat_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2) when rising_edge(clk);
+
 dt_val <= dt_vld(dt_vld'left) when rising_edge(clk);
 
 end cordic_dds;
