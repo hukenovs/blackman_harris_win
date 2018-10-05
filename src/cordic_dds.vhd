@@ -144,8 +144,8 @@ signal init_t           : std_logic_vector(PHASE_WIDTH-1 downto 0);
 signal init_z           : std_logic_vector(DATA_WIDTH+4-1 downto 0);
 
 signal quadrant         : std_logic_vector(1 downto 0);
-signal quadz1         	: std_logic_vector(DATA_WIDTH downto 0);
-signal quadz2         	: std_logic_vector(DATA_WIDTH downto 0);
+signal quadz1         	: std_logic_vector(DATA_WIDTH-1 downto 0);
+signal quadz2         	: std_logic_vector(DATA_WIDTH-1 downto 0);
 signal dt_vld           : std_logic_vector(DATA_WIDTH-1 downto 0);
 
 signal dat_sin          : std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -167,9 +167,9 @@ end generate;
 ---------------------------------------------------------------------
 ---------------- Calculate Quadrant: two MSBs of input phase --------
 ---------------------------------------------------------------------
-quadz1 <= quadz1(DATA_WIDTH-1 downto 0) & ph_in(PHASE_WIDTH-1) when rising_edge(clk);
-quadz2 <= quadz2(DATA_WIDTH-1 downto 0) & ph_in(PHASE_WIDTH-2) when rising_edge(clk);
-quadrant <= quadz1(DATA_WIDTH) & quadz2(DATA_WIDTH);
+quadz1 <= quadz1(DATA_WIDTH-2 downto 0) & ph_in(PHASE_WIDTH-1) when rising_edge(clk);
+quadz2 <= quadz2(DATA_WIDTH-2 downto 0) & ph_in(PHASE_WIDTH-2) when rising_edge(clk);
+quadrant <= quadz1(DATA_WIDTH-1) & quadz2(DATA_WIDTH-1);
 
 ---------------------------------------------------------------------
 ---------------- Registered: initial values for X, Y, Z -------------
@@ -213,11 +213,11 @@ begin
     end if;
 end process;
 
-dat_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2) when rising_edge(clk);
-dat_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2) when rising_edge(clk);
+dat_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2);
+dat_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2);
 
 dt_vld <= dt_vld(dt_vld'left-1 downto 0) & ph_en when rising_edge(clk);
-dt_val <= dt_vld(dt_vld'left) when rising_edge(clk);
+dt_val <= dt_vld(dt_vld'left);
 
 ---- Output data ----
 pr_xy: process(clk) is
