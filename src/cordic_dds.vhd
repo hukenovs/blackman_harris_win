@@ -27,7 +27,7 @@
 --  z0 - initialized to the THETA input argument value (phase);
 --
 --  Phase radians - Look up table array ROM [WIDTH-1 : 0]
---  Formula: Angle = Round[atan(2^-i) * (2^32/(2*pi))] where i - variable of ROM array
+--  Formula: Angle = Round[atan(2^-i) * (2^48/(2*pi))] where i - variable of ROM array
 --
 --  Gain for output signal is production of:
 --      Gain = PROD[ SQRT(1.0+2.0**(-2*i)) ], where i = 0 to DATA_WIDTH.
@@ -151,27 +151,19 @@ signal dt_vld           : std_logic_vector(DATA_WIDTH-1 downto 0);
 signal dat_sin          : std_logic_vector(DATA_WIDTH-1 downto 0);
 signal dat_cos          : std_logic_vector(DATA_WIDTH-1 downto 0);
 
-function get_min return integer is
-	variable ret    : integer;
-begin					
-	if (PHASE_WIDTH <= DATA_WIDTH) then
-		ret := PHASE_WIDTH;
-	else
-		ret := DATA_WIDTH+4;
-	end if;
-	return ret;
-end function get_min;
-constant MIN_VAL		: integer:=get_min;
-
 begin
 
 ---------------------------------------------------------------------
 ---------------- Convert phase width  -------------------------------
 ---------------------------------------------------------------------
-
-init_z(4-1 downto 0) <= (others => '0');
-init_z(DATA_WIDTH+4-1 downto 4) <= init_t(PHASE_WIDTH-1 downto PHASE_WIDTH - DATA_WIDTH);
-	
+xPHI_LESS: if (PHASE_WIDTH >= DATA_WIDTH) generate
+	init_z(4-1 downto 0) <= (others => '0');
+	init_z(DATA_WIDTH+4-1 downto 4) <= init_t(PHASE_WIDTH-1 downto PHASE_WIDTH-DATA_WIDTH);
+end generate;
+xPHI_MORE: if (PHASE_WIDTH < DATA_WIDTH) generate
+	init_z(DATA_WIDTH-PHASE_WIDTH+4-1 downto 0) <= (others => '0');
+	init_z(DATA_WIDTH+4-1 downto DATA_WIDTH-PHASE_WIDTH+4) <= init_t(PHASE_WIDTH-1 downto 0);
+end generate;
 ---------------------------------------------------------------------
 ---------------- Calculate Quadrant: two MSBs of input phase --------
 ---------------------------------------------------------------------
@@ -189,7 +181,6 @@ init_t <= ("00" & ph_in(ph_in'left-2 downto 0));
 ---------------------------------------------------------------------
 ---------------- Compute Angle array and X/Y ------------------------ 
 ---------------------------------------------------------------------
-
 pr_crd: process(clk, reset)
 begin
     if (reset = '1') then
@@ -222,7 +213,11 @@ begin
     end if;
 end process;
 
+dat_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2) when rising_edge(clk);
+dat_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2) when rising_edge(clk);
+
 dt_vld <= dt_vld(dt_vld'left-1 downto 0) & ph_en when rising_edge(clk);
+dt_val <= dt_vld(dt_vld'left) when rising_edge(clk);
 
 ---- Output data ----
 pr_xy: process(clk) is
@@ -250,10 +245,5 @@ begin
 		end if;
 	end if;
 end process;
-
-dat_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2) when rising_edge(clk);
-dat_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2) when rising_edge(clk);
-
-dt_val <= dt_vld(dt_vld'left) when rising_edge(clk);
 
 end cordic_dds;
