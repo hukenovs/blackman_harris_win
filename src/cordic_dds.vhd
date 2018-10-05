@@ -76,6 +76,7 @@ use ieee.std_logic_signed.all;
 
 entity cordic_dds is
 	generic (
+		PRECISION      : integer := 4; --! Data precision: from 1 to 7, avg = 2-4
 		PHASE_WIDTH    : integer := 20;-- Phase width: sets period of signal
 		DATA_WIDTH     : integer := 24 -- Output width: sets magnitude of signal
 	);
@@ -94,8 +95,7 @@ architecture cordic_dds of cordic_dds is
 
 ---------------- Constant declaration ----------------
 constant GAIN48			: std_logic_vector(47 downto 0):=x"4DBA76D421AF";
--- constant GAIN			: std_logic_vector(DATA_WIDTH+4-1 downto 0):='0' & GAIN48(47 downto 47-(DATA_WIDTH+4-1)+1);
-constant GAIN			: std_logic_vector(DATA_WIDTH+4-1 downto 0):="000" & GAIN48(47 downto 47-(DATA_WIDTH+4-1)+3);
+constant GAIN			: std_logic_vector(DATA_WIDTH+PRECISION-1 downto 0):="0" & GAIN48(47 downto 48-DATA_WIDTH-PRECISION+1);
 
 ---------------- ROM: Look up table for CORDIC ----------------
 ---- Result of [ATAN(2^-i) * (2^47/MATH_PI)] rounded and converted to HEX
@@ -116,14 +116,14 @@ constant ROM_LUT : rom_array := (
 		x"000000000005", x"000000000003", x"000000000001", x"000000000000"
 	);
 
-type rom_atan is array (0 to DATA_WIDTH-2) of std_logic_vector(DATA_WIDTH+4-1 downto 0);
+type rom_atan is array (0 to DATA_WIDTH-2) of std_logic_vector(DATA_WIDTH+PRECISION-1 downto 0);
 
 function func_atan return rom_atan is
 	variable ret    : rom_atan;
 begin					
 	for ii in 0 to DATA_WIDTH-2 loop
-		ret(ii)(DATA_WIDTH+4-2 downto 0) := ROM_LUT(ii)(47 downto (47-(DATA_WIDTH+4-2)));
-		ret(ii)(DATA_WIDTH+4-1 downto DATA_WIDTH+4-1) := (others => '0');
+		ret(ii)(DATA_WIDTH+PRECISION-2 downto 0) := ROM_LUT(ii)(47 downto (47-(DATA_WIDTH+PRECISION-2)));
+		ret(ii)(DATA_WIDTH+PRECISION-1 downto DATA_WIDTH+PRECISION-1) := (others => '0');
 	end loop;
 	return ret;
 end function func_atan;
@@ -131,17 +131,17 @@ end function func_atan;
 constant ROM_TABLE : rom_atan := func_atan;
 
 ---------------- Signal declaration ----------------
-type dat_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+4-1 downto 0);
-type phi_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+4-1 downto 0);
+type dat_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+PRECISION-1 downto 0);
+type phi_array is array (0 to DATA_WIDTH-1) of std_logic_vector(DATA_WIDTH+PRECISION-1 downto 0);
 
 signal sigX             : dat_array := (others => (others => '0'));
 signal sigY             : dat_array := (others => (others => '0'));
 signal sigZ             : phi_array := (others => (others => '0'));
 
-signal init_x           : std_logic_vector(DATA_WIDTH+4-1 downto 0);
-signal init_y           : std_logic_vector(DATA_WIDTH+4-1 downto 0);
+signal init_x           : std_logic_vector(DATA_WIDTH+PRECISION-1 downto 0);
+signal init_y           : std_logic_vector(DATA_WIDTH+PRECISION-1 downto 0);
 signal init_t           : std_logic_vector(PHASE_WIDTH-1 downto 0);
-signal init_z           : std_logic_vector(DATA_WIDTH+4-1 downto 0);
+signal init_z           : std_logic_vector(DATA_WIDTH+PRECISION-1 downto 0);
 
 signal quadrant         : std_logic_vector(1 downto 0);
 signal quadz1         	: std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -157,12 +157,12 @@ begin
 ---------------- Convert phase width  -------------------------------
 ---------------------------------------------------------------------
 xPHI_LESS: if (PHASE_WIDTH >= DATA_WIDTH) generate
-	init_z(4-1 downto 0) <= (others => '0');
-	init_z(DATA_WIDTH+4-1 downto 4) <= init_t(PHASE_WIDTH-1 downto PHASE_WIDTH-DATA_WIDTH);
+	init_z(PRECISION-1 downto 0) <= (others => '0');
+	init_z(DATA_WIDTH+PRECISION-1 downto PRECISION) <= init_t(PHASE_WIDTH-1 downto PHASE_WIDTH-DATA_WIDTH);
 end generate;
 xPHI_MORE: if (PHASE_WIDTH < DATA_WIDTH) generate
-	init_z(DATA_WIDTH-PHASE_WIDTH+4-1 downto 0) <= (others => '0');
-	init_z(DATA_WIDTH+4-1 downto DATA_WIDTH-PHASE_WIDTH+4) <= init_t(PHASE_WIDTH-1 downto 0);
+	init_z(DATA_WIDTH-PHASE_WIDTH+PRECISION-1 downto 0) <= (others => '0');
+	init_z(DATA_WIDTH+PRECISION-1 downto DATA_WIDTH-PHASE_WIDTH+PRECISION) <= init_t(PHASE_WIDTH-1 downto 0);
 end generate;
 ---------------------------------------------------------------------
 ---------------- Calculate Quadrant: two MSBs of input phase --------
@@ -195,11 +195,11 @@ begin
 		---- calculate sine & cosine ----
         lpXY: for ii in 0 to DATA_WIDTH-2 loop
             if (sigZ(ii)(sigZ(ii)'left) = '1') then
-                sigX(ii+1) <= sigX(ii) + sigY(ii)(DATA_WIDTH+4-1 downto ii);
-                sigY(ii+1) <= sigY(ii) - sigX(ii)(DATA_WIDTH+4-1 downto ii);
+                sigX(ii+1) <= sigX(ii) + sigY(ii)(DATA_WIDTH+PRECISION-1 downto ii);
+                sigY(ii+1) <= sigY(ii) - sigX(ii)(DATA_WIDTH+PRECISION-1 downto ii);
             else
-                sigX(ii+1) <= sigX(ii) - sigY(ii)(DATA_WIDTH+4-1 downto ii);
-                sigY(ii+1) <= sigY(ii) + sigX(ii)(DATA_WIDTH+4-1 downto ii);
+                sigX(ii+1) <= sigX(ii) - sigY(ii)(DATA_WIDTH+PRECISION-1 downto ii);
+                sigY(ii+1) <= sigY(ii) + sigX(ii)(DATA_WIDTH+PRECISION-1 downto ii);
             end if;
         end loop;
 		---- calculate phase ----
@@ -213,8 +213,8 @@ begin
     end if;
 end process;
 
-dat_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2);
-dat_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+2-1 downto 1-1+2);
+dat_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+PRECISION-1 downto PRECISION);
+dat_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+PRECISION-1 downto PRECISION);
 
 dt_vld <= dt_vld(dt_vld'left-1 downto 0) & ph_en when rising_edge(clk);
 dt_val <= dt_vld(dt_vld'left);
