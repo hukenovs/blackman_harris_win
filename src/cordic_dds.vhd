@@ -76,7 +76,7 @@ use ieee.std_logic_signed.all;
 
 entity cordic_dds is
 	generic (
-		PRECISION      : integer := 4; --! Data precision: from 1 to 7, avg = 2-4
+		PRECISION      : integer := 1; --! Data precision: from 1 to 7, avg = 2-4
 		PHASE_WIDTH    : integer := 20;-- Phase width: sets period of signal
 		DATA_WIDTH     : integer := 24 -- Output width: sets magnitude of signal
 	);
@@ -183,33 +183,35 @@ init_t <= ("00" & ph_in(ph_in'left-2 downto 0));
 ---------------------------------------------------------------------
 pr_crd: process(clk, reset)
 begin
-    if (reset = '1') then
-        ---- Reset sine / cosine / angle vector ----
-		sigX <= (others => (others => '0'));
-		sigY <= (others => (others => '0'));
-		sigZ <= (others => (others => '0'));		
-    elsif rising_edge(clk) then
-		sigX(0) <= init_x;
-		sigY(0) <= init_y; 
-		sigZ(0) <= init_z;
-		---- calculate sine & cosine ----
-        lpXY: for ii in 0 to DATA_WIDTH-2 loop
-            if (sigZ(ii)(sigZ(ii)'left) = '1') then
-                sigX(ii+1) <= sigX(ii) + sigY(ii)(DATA_WIDTH+PRECISION-1 downto ii);
-                sigY(ii+1) <= sigY(ii) - sigX(ii)(DATA_WIDTH+PRECISION-1 downto ii);
-            else
-                sigX(ii+1) <= sigX(ii) - sigY(ii)(DATA_WIDTH+PRECISION-1 downto ii);
-                sigY(ii+1) <= sigY(ii) + sigX(ii)(DATA_WIDTH+PRECISION-1 downto ii);
-            end if;
-        end loop;
-		---- calculate phase ----
-        lpZ: for ii in 0 to DATA_WIDTH-2 loop
-            if (sigZ(ii)(sigZ(ii)'left) = '1') then
-                sigZ(ii+1) <= sigZ(ii) + ROM_TABLE(ii);
-            else
-                sigZ(ii+1) <= sigZ(ii) - ROM_TABLE(ii);
-            end if;
-        end loop;
+    if rising_edge(clk) then
+		if (reset = '1') then
+			---- Reset sine / cosine / angle vector ----
+			sigX <= (others => (others => '0'));
+			sigY <= (others => (others => '0'));
+			sigZ <= (others => (others => '0'));		
+		else
+			sigX(0) <= init_x;
+			sigY(0) <= init_y; 
+			sigZ(0) <= init_z;
+			---- calculate sine & cosine ----
+			lpXY: for ii in 0 to DATA_WIDTH-2 loop
+				if (sigZ(ii)(sigZ(ii)'left) = '1') then
+					sigX(ii+1) <= sigX(ii) + sigY(ii)(DATA_WIDTH+PRECISION-1 downto ii);
+					sigY(ii+1) <= sigY(ii) - sigX(ii)(DATA_WIDTH+PRECISION-1 downto ii);
+				else
+					sigX(ii+1) <= sigX(ii) - sigY(ii)(DATA_WIDTH+PRECISION-1 downto ii);
+					sigY(ii+1) <= sigY(ii) + sigX(ii)(DATA_WIDTH+PRECISION-1 downto ii);
+				end if;
+			end loop;
+			---- calculate phase ----
+			lpZ: for ii in 0 to DATA_WIDTH-2 loop
+				if (sigZ(ii)(sigZ(ii)'left) = '1') then
+					sigZ(ii+1) <= sigZ(ii) + ROM_TABLE(ii);
+				else
+					sigZ(ii+1) <= sigZ(ii) - ROM_TABLE(ii);
+				end if;
+			end loop;
+		end if;
     end if;
 end process;
 
