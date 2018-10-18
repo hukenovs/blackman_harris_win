@@ -157,18 +157,17 @@ void cordic (
 
 /* ---------------- Window: Empty ---------------- */
 void win_empty (
-	win_t out_win[]
+	phi_t i,
+	win_t* out_win
 	)
 {
-	int i = 0x0;
-	for (i = 0; i < NSAMPLES; i++) {
-		out_win[i] = 0x0;
-	}	
+	*out_win = 0x0;
 }
 
 /* ---------------- Window: Hamming ---------------- */
 void win_hamming (
-	win_t out_win[]
+	phi_t i,
+	win_t* out_win
 	)
 {
 	const double coeA0 = 0.5434783;
@@ -179,35 +178,29 @@ void win_hamming (
 	
 	win_t s, c;
 	
-	int i = 0x0;
-	for (i = 0; i < NSAMPLES; i++) {
-		cordic(i, &c, &s);
-
-		out_win[i] = (win_t) (a0 - ((a1 * c) >> (NWIDTH-2)));
-	}	
+	cordic(i, &c, &s);
+	*out_win = (win_t) (a0 - ((a1 * c) >> (NWIDTH-2)));
 }
 
 /* ---------------- Window: Hann ---------------- */
 void win_hann (
-	win_t out_win[]
+	phi_t i,
+	win_t* out_win
 	)
 {
 	const dbl_t a0 = round(0.5 * (pow(2.0, NWIDTH-1)-1.0));
 	const dbl_t a1 = round(0.5 * (pow(2.0, NWIDTH-1)-1.0));
 	
 	win_t s, c;
-	
-	int i = 0x0;
-	for (i = 0; i < NSAMPLES; i++) {
-		cordic(i, &c, &s);
 
-		out_win[i] = (win_t) (a0 - ((a1 * c) >> (NWIDTH-2)));
-	}	
+	cordic(i, &c, &s);
+	*out_win = (win_t) (a0 - ((a1 * c) >> (NWIDTH-2)));
 }
 
 /* ---------------- Window: Blackman-Harris-3 ---------------- */
 void win_blackman_harris_3 (
-	win_t out_win[]
+	phi_t i,
+	win_t* out_win
 	)
 {
 	const double coeA0 = 0.42;
@@ -221,22 +214,21 @@ void win_blackman_harris_3 (
 	win_t s1, c1, s2, c2;
 
 	dbl_t mlt1, mlt2;	
-	
-	int i = 0x0;
-	for (i = 0; i < NSAMPLES; i++) {
-		cordic(i, &c1, &s1);
-		cordic(2*i, &c2, &s2);
 
-		mlt1 = (a1 * c1) >> (NWIDTH-2);
-		mlt2 = (a2 * c2) >> (NWIDTH-2);
-		
-		out_win[i] = (win_t) (a0 - mlt1 + mlt2);
-	}	
+	cordic(i, &c1, &s1);
+	cordic(2*i, &c2, &s2);
+
+	mlt1 = (a1 * c1) >> (NWIDTH-2);
+	mlt2 = (a2 * c2) >> (NWIDTH-2);
+	
+	*out_win = (win_t) (a0 - mlt1 + mlt2);
+
 }
 
 /* ---------------- Window: Blackman-Harris-4 ---------------- */
 void win_blackman_harris_4 (
-	win_t out_win[]
+	phi_t i,
+	win_t* out_win
 	)
 {
 	/*
@@ -271,23 +263,22 @@ void win_blackman_harris_4 (
 
 	dbl_t mlt1, mlt2, mlt3;
 
-	int i = 0x0;
-	for (i = 0; i < NSAMPLES; i++) {
-		cordic(1*i, &c1, &s1);
-		cordic(2*i, &c2, &s2);
-		cordic(3*i, &c3, &s3);
+	cordic(1*i, &c1, &s1);
+	cordic(2*i, &c2, &s2);
+	cordic(3*i, &c3, &s3);
 
-		mlt1 = (a1 * c1) >> (NWIDTH-2);
-		mlt2 = (a2 * c2) >> (NWIDTH-2);
-		mlt3 = (a3 * c3) >> (NWIDTH-2);
-		
-		out_win[i] = (win_t) (a0 - mlt1 + mlt2 - mlt3);
-	}	
+	mlt1 = (a1 * c1) >> (NWIDTH-2);
+	mlt2 = (a2 * c2) >> (NWIDTH-2);
+	mlt3 = (a3 * c3) >> (NWIDTH-2);
+	
+	*out_win = (win_t) (a0 - mlt1 + mlt2 - mlt3);
+	
 }
 
 /* ---------------- Window: Blackman-Harris-5 ---------------- */
 void win_blackman_harris_5 (
-	win_t out_win[]
+	phi_t i,
+	win_t* out_win
 	)
 {
 	/*
@@ -333,25 +324,23 @@ void win_blackman_harris_5 (
 
 	dbl_t mlt1, mlt2, mlt3, mlt4;	
 	
-	int i = 0x0;
-	for (i = 0; i < NSAMPLES; i++) {
-		cordic(1*i, &c1, &s1);
-		cordic(2*i, &c2, &s2);
-		cordic(3*i, &c3, &s3);
-		cordic(4*i, &c3, &s3);
+	cordic(1*i, &c1, &s1);
+	cordic(2*i, &c2, &s2);
+	cordic(3*i, &c3, &s3);
+	cordic(4*i, &c3, &s3);
 
-		mlt1 = (a1 * c1) >> (NWIDTH-2);
-		mlt2 = (a2 * c2) >> (NWIDTH-2);
-		mlt3 = (a3 * c3) >> (NWIDTH-2);
-		mlt4 = (a4 * c4) >> (NWIDTH-2);
+	mlt1 = (a1 * c1) >> (NWIDTH-2);
+	mlt2 = (a2 * c2) >> (NWIDTH-2);
+	mlt3 = (a3 * c3) >> (NWIDTH-2);
+	mlt4 = (a4 * c4) >> (NWIDTH-2);
 		
-		out_win[i] = (win_t) (a0 - mlt1 + mlt2 - mlt3 + mlt4);
-	}	
+	*out_win = (win_t) (a0 - mlt1 + mlt2 - mlt3 + mlt4);
 }
 
 /* ---------------- Window: Blackman-Harris-7 ---------------- */
 void win_blackman_harris_7 (
-	win_t out_win[]
+	phi_t i,
+	win_t* out_win
 	)
 {
 	const double coeA0= 0.271220360585039;
@@ -374,8 +363,6 @@ void win_blackman_harris_7 (
 
 	dbl_t mlt1, mlt2, mlt3, mlt4, mlt5, mlt6;	
 	
-	int i = 0x0;
-	for (i = 0; i < NSAMPLES; i++) {
 		cordic(1*i, &c1, &s1);
 		cordic(2*i, &c2, &s2);
 		cordic(3*i, &c3, &s3);
@@ -390,44 +377,45 @@ void win_blackman_harris_7 (
 		mlt5 = (a5 * c5) >> (NWIDTH-2);
 		mlt6 = (a6 * c6) >> (NWIDTH-2);
 
-		out_win[i] = (win_t) (a0 - mlt1 + mlt2 - mlt3 + mlt4 - mlt5 + mlt6);
-	}
+	*out_win = (win_t) (a0 - mlt1 + mlt2 - mlt3 + mlt4 - mlt5 + mlt6);
+
 }
 
 /* ---------------- Window Function ---------------- */
 void win_function (
 		char win_type,
-		win_t out_win[NSAMPLES]
+		phi_t i,		
+		win_t* out_win
 	)
 {
 	switch (win_type) 
 	{
 		case 0x1:
-			win_hamming(out_win);
+			win_hamming(i, out_win);
 			break;
 			
 		case 0x2:
-			win_hann(out_win);
+			win_hann(i, out_win);
 			break;
 			
 		case 0x3:
-			win_blackman_harris_3(out_win);
+			win_blackman_harris_3(i, out_win);
 			break;
 			
 		case 0x4:
-			win_blackman_harris_4(out_win);
+			win_blackman_harris_4(i, out_win);
 			break;
 			
 		case 0x5:
-			win_blackman_harris_5(out_win);
+			win_blackman_harris_5(i, out_win);
 			break;
 			
 		case 0x7:
-			win_blackman_harris_7(out_win);
+			win_blackman_harris_7(i, out_win);
 			break;
 	
 		default:
-			win_empty(out_win);
+			win_empty(i, out_win);
 			break;		
 	}
 	

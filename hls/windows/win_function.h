@@ -64,6 +64,7 @@ typedef uint2 duo_t;
 /* ---- Top level function --- */
 void win_function (
 	char win_type,
-	win_t out_win[]
+	phi_t i,	
+	win_t* out_win
 );
 

@@ -77,10 +77,9 @@ int main () {
 	
 	double calc_dbl;
 	win_t win_rnd[NSAMPLES];
-	win_t win_res[NSAMPLES];	
+	win_t win_out[NSAMPLES];
+	win_t win_res;
 	
-	/* Execute window function */
-	win_function(sel, win_res);
 
 	int shift = 1;
 	printf("HLS Data: \t Golden Data:\n");
@@ -196,16 +195,20 @@ int main () {
 				calc_dbl = 0x0;
 		}
 		
+		/* Execute window function */
+		win_function(sel, i, &win_res);
+		win_out[i] = win_res;
+
 		win_rnd[i] = (win_t) (round((pow(2.0, NWIDTH-shift)-1.0) * calc_dbl));
 		
-		acc_err += pow(abs((double)win_rnd[i] - (double)win_res[i]), 2);
+		acc_err += pow(abs((double)win_rnd[i] - (double)win_out[i]), 2);
 		
-		fprintf(fout, "%d \n", win_res[i]);
+		fprintf(fout, "%d \n", win_out[i]);
 		fprintf(fgld, "%d \n", win_rnd[i]);
 
 		if (i < 16)
 		{
-			printf("%08X \t %08X\n", win_res[i], win_rnd[i]);
+			printf("%08X \t %08X\n", win_out[i], win_rnd[i]);
 		}
 		
 	}
