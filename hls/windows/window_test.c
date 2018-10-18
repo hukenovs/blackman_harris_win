@@ -82,7 +82,7 @@ int main () {
 	/* Execute window function */
 	win_function(sel, win_res);
 
-	
+	int shift = 1;
 	printf("HLS Data: \t Golden Data:\n");
 	int i = 0x0;
 	double a0, a1, a2, a3, a4, a5, a6;
@@ -94,12 +94,14 @@ int main () {
 				a0 = 0.5434783;
 				a1 = 1.0 - 0.5434783;
 				calc_dbl = a0 - a1 * cos((2 * i * M_PI)/NSAMPLES);
+				shift = 1;
 				break;
 				
 			case 0x2:
 				a0 = 0.5;
 				a1 = 0.5;
 				calc_dbl = a0 - a1 * cos((2 * i * M_PI)/NSAMPLES);
+				shift = 1;
 				break;
 				
 			case 0x3:
@@ -107,6 +109,7 @@ int main () {
 				a1 = 0.5;
 				a2 = 0.08;
 				calc_dbl = a0 - a1 * cos((2 * i * M_PI)/NSAMPLES) + a2 * cos((2 * 2 * i * M_PI)/NSAMPLES);
+				shift = 1;
 				break;
 				
 			case 0x4:
@@ -133,6 +136,7 @@ int main () {
 				a3 = 0.01168;
 				
 				calc_dbl = a0 - a1 * cos((2 * i * M_PI)/NSAMPLES) + a2 * cos((2 * 2 * i * M_PI)/NSAMPLES) - a3 * cos((3 * 2 * i * M_PI)/NSAMPLES);
+				shift = 1;
 				break;
 				
 			case 0x5:
@@ -143,6 +147,12 @@ int main () {
 						a2 = 0.14128;
 						a3 = 0.01168;
 						a4 = 0.01168;
+					> Blackman-Harris:
+						a0 = 0.3232153788877343;
+						a1 = 0.4714921439576260;
+						a2 = 0.1755341299601972;
+						a3 = 0.0284969901061499;
+						a4 = 0.0012613570882927;
 					> Flat-top (1):
 						a0 = 0.50000;
 						a1 = 0.98500;
@@ -163,6 +173,7 @@ int main () {
 				a4 = 0.01168;
 
 				calc_dbl = a0 - a1 * cos((2 * i * M_PI)/NSAMPLES) + a2 * cos((2 * 2 * i * M_PI)/NSAMPLES) - a3 * cos((3 * 2 * i * M_PI)/NSAMPLES) + a4 * cos((4 * 2 * i * M_PI)/NSAMPLES);
+				shift = 2;
 				break;
 			
 			case 0x7:
@@ -175,12 +186,13 @@ int main () {
 				a6 = 0.000013680883060;
 				
 				calc_dbl = a0 - a1 * cos((2 * i * M_PI)/NSAMPLES) + a2 * cos((2 * 2 * i * M_PI)/NSAMPLES) - a3 * cos((3 * 2 * i * M_PI)/NSAMPLES) + a4 * cos((4 * 2 * i * M_PI)/NSAMPLES) - a5 *  cos((5 * 2 * i * M_PI)/NSAMPLES) + a6 *  cos((6 * 2 * i * M_PI)/NSAMPLES);
+				shift = 2;
 				break;
 			default: 
 				calc_dbl = 0x0;
 		}
 		
-		win_rnd[i] = (win_t) (round((pow(2.0, NWIDTH-1)-1.0) * calc_dbl));
+		win_rnd[i] = (win_t) (round((pow(2.0, NWIDTH-shift)-1.0) * calc_dbl));
 		
 		fprintf(fout, "%d \n", win_res[i]);
 		fprintf(fgld, "%d \n", win_rnd[i]);

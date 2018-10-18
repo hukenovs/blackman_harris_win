@@ -297,6 +297,12 @@ void win_blackman_harris_5 (
 			a2 = 0.14128; 
 			a3 = 0.01168;
 			a4 = 0.01168;
+		> Blackman-Harris:
+			a0 = 0.3232153788877343;
+			a1 = 0.4714921439576260;
+			a2 = 0.1755341299601972;
+			a3 = 0.0284969901061499;
+			a4 = 0.0012613570882927;
 		> Flat-top (1):
 			a0 = 0.50000;
 			a1 = 0.98500;
@@ -311,17 +317,17 @@ void win_blackman_harris_5 (
 			a3 = 0.006947368;
 	*/	
 	
-	const double coeA0 = 0.3232153788877343;
-	const double coeA1 = 0.4714921439576260;
-	const double coeA2 = 0.1755341299601972;
-	const double coeA3 = 0.0284969901061499;	
-	const double coeA4 = 0.0012613570882927;	
+	const double coeA0 = 0.35875;
+	const double coeA1 = 0.48829;
+	const double coeA2 = 0.14128;
+	const double coeA3 = 0.01168;	
+	const double coeA4 = 0.01168;	
 
-	dbl_t a0 = round(coeA0 * (pow(2.0, NWIDTH-1)-1.0));
-	dbl_t a1 = round(coeA1 * (pow(2.0, NWIDTH-1)-1.0));
-	dbl_t a2 = round(coeA2 * (pow(2.0, NWIDTH-1)-1.0));
-	dbl_t a3 = round(coeA3 * (pow(2.0, NWIDTH-1)-1.0));
-	dbl_t a4 = round(coeA4 * (pow(2.0, NWIDTH-1)-1.0));
+	dbl_t a0 = round(coeA0 * (pow(2.0, NWIDTH-2)-1.0));
+	dbl_t a1 = round(coeA1 * (pow(2.0, NWIDTH-2)-1.0));
+	dbl_t a2 = round(coeA2 * (pow(2.0, NWIDTH-2)-1.0));
+	dbl_t a3 = round(coeA3 * (pow(2.0, NWIDTH-2)-1.0));
+	dbl_t a4 = round(coeA4 * (pow(2.0, NWIDTH-2)-1.0));
 	
 	win_t s1, c1, s2, c2, s3, c3, s4, c4;
 
@@ -332,10 +338,12 @@ void win_blackman_harris_5 (
 		cordic(1*i, &c1, &s1);
 		cordic(2*i, &c2, &s2);
 		cordic(3*i, &c3, &s3);
+		cordic(4*i, &c3, &s3);
 
 		mlt1 = (a1 * c1) >> (NWIDTH-2);
 		mlt2 = (a2 * c2) >> (NWIDTH-2);
 		mlt3 = (a3 * c3) >> (NWIDTH-2);
+		mlt4 = (a4 * c4) >> (NWIDTH-2);
 		
 		out_win[i] = (win_t) (a0 - mlt1 + mlt2 - mlt3 + mlt4);
 	}	
@@ -354,13 +362,13 @@ void win_blackman_harris_7 (
 	const double coeA5= 0.000770012710581;
 	const double coeA6= 0.000013680883060;
 
-	dbl_t a0 = round(coeA0 * (pow(2.0, NWIDTH-1)-1.0));
-	dbl_t a1 = round(coeA1 * (pow(2.0, NWIDTH-1)-1.0));
-	dbl_t a2 = round(coeA2 * (pow(2.0, NWIDTH-1)-1.0));
-	dbl_t a3 = round(coeA3 * (pow(2.0, NWIDTH-1)-1.0));
-	dbl_t a4 = round(coeA4 * (pow(2.0, NWIDTH-1)-1.0));
-	dbl_t a5 = round(coeA5 * (pow(2.0, NWIDTH-1)-1.0));
-	dbl_t a6 = round(coeA6 * (pow(2.0, NWIDTH-1)-1.0));
+	dbl_t a0 = round(coeA0 * (pow(2.0, NWIDTH-2)-1.0));
+	dbl_t a1 = round(coeA1 * (pow(2.0, NWIDTH-2)-1.0));
+	dbl_t a2 = round(coeA2 * (pow(2.0, NWIDTH-2)-1.0));
+	dbl_t a3 = round(coeA3 * (pow(2.0, NWIDTH-2)-1.0));
+	dbl_t a4 = round(coeA4 * (pow(2.0, NWIDTH-2)-1.0));
+	dbl_t a5 = round(coeA5 * (pow(2.0, NWIDTH-2)-1.0));
+	dbl_t a6 = round(coeA6 * (pow(2.0, NWIDTH-2)-1.0));
 	
 	win_t s1, c1, s2, c2, s3, c3, s4, c4, s5, c5, s6, c6;
 
@@ -373,12 +381,14 @@ void win_blackman_harris_7 (
 		cordic(3*i, &c3, &s3);
 		cordic(4*i, &c4, &s4);
 		cordic(5*i, &c5, &s5);
+		cordic(6*i, &c6, &s6);
 
 		mlt1 = (a1 * c1) >> (NWIDTH-2);
 		mlt2 = (a2 * c2) >> (NWIDTH-2);
 		mlt3 = (a3 * c3) >> (NWIDTH-2);
-		mlt3 = (a4 * c4) >> (NWIDTH-2);
-		mlt3 = (a5 * c5) >> (NWIDTH-2);
+		mlt4 = (a4 * c4) >> (NWIDTH-2);
+		mlt5 = (a5 * c5) >> (NWIDTH-2);
+		mlt6 = (a6 * c6) >> (NWIDTH-2);
 
 		out_win[i] = (win_t) (a0 - mlt1 + mlt2 - mlt3 + mlt4 - mlt5 + mlt6);
 	}
