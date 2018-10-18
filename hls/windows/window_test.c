@@ -84,9 +84,13 @@ int main () {
 
 	int shift = 1;
 	printf("HLS Data: \t Golden Data:\n");
-	int i = 0x0;
+	
+	/* Weight parameters */
 	double a0, a1, a2, a3, a4, a5, a6;
 	
+	double acc_err = 0;
+	
+	int i = 0x0;
 	for (i = 0; i < NSAMPLES; i++)
 	{
 		switch (sel) {
@@ -194,6 +198,8 @@ int main () {
 		
 		win_rnd[i] = (win_t) (round((pow(2.0, NWIDTH-shift)-1.0) * calc_dbl));
 		
+		acc_err += pow(abs((double)win_rnd[i] - (double)win_res[i]), 2);
+		
 		fprintf(fout, "%d \n", win_res[i]);
 		fprintf(fgld, "%d \n", win_rnd[i]);
 
@@ -203,17 +209,19 @@ int main () {
 		}
 		
 	}
-
+	acc_err = sqrt(acc_err) / NSAMPLES;
+	
 	fclose(fout);
 	fclose(fout);
 
-	printf ("PASS: Data matches the golden output!\n");
-//	if ((acc_s < 10) && (acc_c < 10)) {
-//		printf ("PASS: Data matches the golden output!\n");
-//		return 0;
-//	} else {
-//		printf ("FAIL: Data DOES NOT match the golden output\n");
-//		return 1;
-//	}
+	printf("\nCalculation error between integer and double = %lf \n", acc_err);
+
+	if (acc_err < 10) {
+		printf ("PASS: Data matches the golden output!\n");
+		return 0;
+	} else {
+		printf ("FAIL: Data DOES NOT match the golden output\n");
+		return 1;
+	}
 
 }
