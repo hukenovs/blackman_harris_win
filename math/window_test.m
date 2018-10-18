@@ -37,7 +37,6 @@ set(0, 'DefaultTextFontSize', 14, 'DefaultTextFontName', 'Times New Roman');
 WINTYPE = 7;
 DATA_WIDTH = 24;
 
-
 % Load output data from Vivado HLS
 DT_CRD = load ("dout.dat");
 DT_TST = load ("golden_dat.dat");
