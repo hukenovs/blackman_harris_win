@@ -45,7 +45,7 @@
 #include "ap_int.h"
 
 /* ---- Constants  --- */
-#define Wintype "Blackman-Harris-7"
+#define Wintype "Blackman-Harris-5"
 
 /* ---- Output data width and input phase (counter) width  --- */
 #define NPHASE 10
@@ -57,7 +57,7 @@
 typedef ap_int<NWIDTH> win_t;
 typedef ap_int<NPHASE> phi_t;
 
-typedef ap_int<2*NWIDTH> dbl_t;
+typedef ap_int<2*NWIDTH+1> dbl_t;
 typedef ap_int<2+NWIDTH> dat_t;
 typedef ap_uint<2> duo_t;
 

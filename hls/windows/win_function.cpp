@@ -203,9 +203,9 @@ void win_blackman_harris_3 (
 	win_t* out_win
 	)
 {
-	const double coeA0 = 0.42;
-	const double coeA1 = 0.5;
-	const double coeA2 = 0.08;
+	const double coeA0 = 0.21;
+	const double coeA1 = 0.25;
+	const double coeA2 = 0.04;
 
 	dbl_t a0 = round(coeA0 * (pow(2.0, NWIDTH-1)-1.0));
 	dbl_t a1 = round(coeA1 * (pow(2.0, NWIDTH-1)-1.0));
@@ -214,13 +214,14 @@ void win_blackman_harris_3 (
 	win_t s1, c1, s2, c2;
 
 	dbl_t mlt1, mlt2;	
+	dbl_t sum;
 
 	cordic(i, &c1, &s1);
 	cordic(2*i, &c2, &s2);
 
 	mlt1 = (a1 * c1) >> (NWIDTH-2);
 	mlt2 = (a2 * c2) >> (NWIDTH-2);
-	
+
 	*out_win = (win_t) (a0 - mlt1 + mlt2);
 
 }
@@ -283,23 +284,17 @@ void win_blackman_harris_5 (
 {
 	/*
 		> Blackman-Harris:
-			a0 = 0.35875; 
-			a1 = 0.48829; 
-			a2 = 0.14128; 
-			a3 = 0.01168;
-			a4 = 0.01168;
-		> Blackman-Harris:
 			a0 = 0.3232153788877343;
 			a1 = 0.4714921439576260;
 			a2 = 0.1755341299601972;
 			a3 = 0.0284969901061499;
 			a4 = 0.0012613570882927;
 		> Flat-top (1):
-			a0 = 0.50000;
-			a1 = 0.98500;
-			a2 = 0.64500;
-			a3 = 0.19400;
-			a4 = 0.01500;
+			a0 = 0.25000;
+			a1 = 0.49250;
+			a2 = 0.32250;
+			a3 = 0.09700;
+			a4 = 0.00750;
 		> Flat-top (2):
 			a0 = 0.215578950; 
 			a1 = 0.416631580; 
@@ -308,11 +303,11 @@ void win_blackman_harris_5 (
 			a3 = 0.006947368;
 	*/	
 	
-	const double coeA0 = 0.35875;
-	const double coeA1 = 0.48829;
-	const double coeA2 = 0.14128;
-	const double coeA3 = 0.01168;	
-	const double coeA4 = 0.01168;	
+	const double coeA0 = 0.3232153788877343;
+	const double coeA1 = 0.4714921439576260;
+	const double coeA2 = 0.1755341299601972;
+	const double coeA3 = 0.0284969901061499;	
+	const double coeA4 = 0.0012613570882927;	
 
 	dbl_t a0 = round(coeA0 * (pow(2.0, NWIDTH-2)-1.0));
 	dbl_t a1 = round(coeA1 * (pow(2.0, NWIDTH-2)-1.0));
@@ -327,7 +322,7 @@ void win_blackman_harris_5 (
 	cordic(1*i, &c1, &s1);
 	cordic(2*i, &c2, &s2);
 	cordic(3*i, &c3, &s3);
-	cordic(4*i, &c3, &s3);
+	cordic(4*i, &c4, &s4);
 
 	mlt1 = (a1 * c1) >> (NWIDTH-2);
 	mlt2 = (a2 * c2) >> (NWIDTH-2);
