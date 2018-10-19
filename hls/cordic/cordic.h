@@ -41,18 +41,18 @@
 *******************************************************************************/
 
 // #include "ap_fixed.h"
-#include "ap_cint.h"
+#include "ap_int.h"
 
 /* ---- Constants  --- */
 #define NPHASE 10
 #define NWIDTH 16
 
 /* ---- Data types --- */
-typedef uint2 dbl_t;
+typedef ap_uint<2> dbl_t;
 
-typedef uint10 phi_t;
-typedef int18 dat_t;
-typedef int16 out_t;
+typedef ap_int<NPHASE> phi_t;
+typedef ap_int<NWIDTH+2> dat_t;
+typedef ap_int<NWIDTH> out_t;
 
 /* ---- Top level function --- */
 void cordic (
