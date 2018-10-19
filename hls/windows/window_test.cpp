@@ -49,7 +49,7 @@
 int main () {
 
 	printf("!!! ************************************************ !!!\n");
-	printf("\nPhase = %d, Data = %d, Samples = %d Result: \n\n", NPHASE, NWIDTH, NSAMPLES);
+	printf("\nPhase = %d, Data = %d, Samples = %d Result: \n", NPHASE, NWIDTH, NSAMPLES);
 
 	FILE *fout;	FILE *fgld;	
 	fout = fopen("..\\..\\..\\..\\..\\math\\dout.dat", "w");	
@@ -72,7 +72,7 @@ int main () {
 	} else {
 		sel = 0xAAAA;
 	}
-	printf("Selected window is %s %d\n", Wintype, sel);
+	printf("Selected window is %s (Number - %d)\n", Wintype, sel);
 	
 	
 	double calc_dbl;
@@ -203,12 +203,12 @@ int main () {
 		
 		acc_err += pow(abs((double)win_rnd[i] - (double)win_out[i]), 2);
 		
-		fprintf(fout, "%d \n", win_out[i]);
-		fprintf(fgld, "%d \n", win_rnd[i]);
+		fprintf(fout, "%d \n", (int)win_out[i]);
+		fprintf(fgld, "%d \n", (int)win_rnd[i]);
 
 		if (i < 16)
 		{
-			printf("%08X \t %08X\n", win_out[i], win_rnd[i]);
+			printf("%08X \t %08X\n", (int)win_out[i], (int)win_rnd[i]);
 		}
 		
 	}

@@ -42,28 +42,28 @@
 *******************************************************************************/
 
 // #include "ap_fixed.h"
-#include "ap_cint.h"
+#include "ap_int.h"
 
 /* ---- Constants  --- */
 #define Wintype "Blackman-Harris-7"
 
+/* ---- Output data width and input phase (counter) width  --- */
 #define NPHASE 10
-typedef uint10 phi_t;
-
-
 #define NWIDTH 24
-typedef int24 win_t;
-typedef int48 dbl_t;
-typedef int26 dat_t;
 
 #define NSAMPLES (int)pow(2, NPHASE)
 
-/* ---- Data types --- */
-typedef uint2 duo_t;
+/* ---- Define data types for c-functions ---- */
+typedef ap_int<NWIDTH> win_t;
+typedef ap_int<NPHASE> phi_t;
+
+typedef ap_int<2*NWIDTH> dbl_t;
+typedef ap_int<2+NWIDTH> dat_t;
+typedef ap_uint<2> duo_t;
 
 /* ---- Top level function --- */
 void win_function (
-	char win_type,
+	const char win_type,
 	phi_t i,	
 	win_t* out_win
 );

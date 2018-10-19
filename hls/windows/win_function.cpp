@@ -51,8 +51,8 @@ void cordic (
 	)
 {
 	#pragma HLS INTERFACE port=phi_int
-	#pragma HLS INTERFACE register port=out_cos
-	#pragma HLS INTERFACE register port=out_sin
+	#pragma HLS INTERFACE ap_none register port=out_cos
+	#pragma HLS INTERFACE ap_none register port=out_sin
 	#pragma HLS PIPELINE
 
 	// Create Look-up table array //
@@ -383,11 +383,16 @@ void win_blackman_harris_7 (
 
 /* ---------------- Window Function ---------------- */
 void win_function (
-		char win_type,
+		const char win_type,
 		phi_t i,		
 		win_t* out_win
 	)
 {
+	#pragma HLS INTERFACE ap_none port=win_type
+	#pragma HLS INTERFACE ap_none port=i
+	#pragma HLS INTERFACE ap_none register port=out_win
+	#pragma HLS PIPELINE
+
 	switch (win_type) 
 	{
 		case 0x1:
