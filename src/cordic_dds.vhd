@@ -219,7 +219,7 @@ dat_sin <= sigY(DATA_WIDTH-1)(DATA_WIDTH+PRECISION-1 downto PRECISION);
 dat_cos <= sigX(DATA_WIDTH-1)(DATA_WIDTH+PRECISION-1 downto PRECISION);
 
 dt_vld <= dt_vld(dt_vld'left-1 downto 0) & ph_en when rising_edge(clk);
-dt_val <= dt_vld(dt_vld'left);
+dt_val <= dt_vld(dt_vld'left) when rising_edge(clk);
 
 ---- Output data ----
 pr_xy: process(clk) is
