@@ -19,7 +19,7 @@ License: GNU GPL 3.0.
 | **Title**         | Universal window functions           |
 | -- | -- |
 | **Author**        | Alexander Kapitanov                  |
-| **Contact**       | sallador@bk.ru                       |
+| **Contact**       | <hidden>                             |
 | **Project lang**  | VHDL                                 |
 | **Vendor**        | Xilinx: 6/7-series, Ultrascale, US+  |
 | **Release Date**  | 20 Sep 2018                          |
